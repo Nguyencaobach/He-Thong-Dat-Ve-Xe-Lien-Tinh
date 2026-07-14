@@ -1,0 +1,81 @@
+# Roadmap Hoàn Thiện Backend Hệ Thống Đặt Vé Xe Liên Tỉnh
+
+Dưới đây là danh sách toàn bộ các task (công việc) đã được chia nhỏ chi tiết nhất có thể để anh dễ dàng thực hiện. Khi code xong phần nào, anh chỉ cần điền dấu `x` vào ô trống (ví dụ: `[x]`) để đánh dấu hoàn thành.
+
+---
+
+## Giai đoạn 1: Khởi tạo Hạ tầng & Nền tảng Dùng chung
+- [ ] Khởi chạy file `docker-compose.yml` để dựng Postgres, Redis, RabbitMQ, Kafka.
+- [ ] Định nghĩa `workspaces` trong `package.json` ở thư mục gốc để quản lý monorepo.
+- [ ] Cài đặt các package cơ bản cho thư mục `packages/common-utils` (Logger, Error Handler).
+- [ ] Định nghĩa Schema JSON cho các luồng event trong `packages/event-schemas`.
+- [ ] Viết code cho các file `.proto` (Định nghĩa gRPC interface cho Trip, Seat, Booking, Payment, Admin).
+- [ ] Cấu hình và chạy thử các script SQL tạo Database trong `infrastructure/init-db/`.
+
+## Giai đoạn 2: API Gateway & Authentication (Lễ tân kiêm Bảo vệ)
+- [ ] Khởi tạo dự án Apollo Server (GraphQL) trong `api-gateway`.
+- [ ] Viết `db.js` để kết nối vào Database `users` của Gateway.
+- [ ] Tạo bảng `Users` (id, email, password, role).
+- [ ] Viết logic Đăng ký tài khoản (`authService.js`).
+- [ ] Viết logic Đăng nhập, kiểm tra mật khẩu và cấp phát **JWT Token**.
+- [ ] Viết Middleware để giải mã JWT, bóc tách `userId` và `role` gắn vào GraphQL Context.
+- [ ] Định nghĩa GraphQL `TypeDefs` cho toàn bộ hệ thống (dựa theo các file proto).
+- [ ] Khởi tạo các gRPC Clients để gọi xuống các service bên dưới (`grpcClients.js`).
+
+## Giai đoạn 3: Module 1 - Trip/Search Service (Tìm kiếm & Tuyến xe)
+- [ ] Khởi tạo kết nối Knex (Postgres) và Redis trong `trip-service`.
+- [ ] Viết Knex Migrations để tạo bảng `Routes` (Tuyến) và `Trips` (Chuyến).
+- [ ] Viết File Seed để chèn dữ liệu mẫu (Sài Gòn - Đà Lạt, v.v...).
+- [ ] Cài đặt gRPC Server lắng nghe Gateway.
+- [ ] Viết logic `routeService.js`: Autocomplete tìm kiếm điểm đi, điểm đến.
+- [ ] Viết logic `tripService.js`: Tìm chuyến xe theo Ngày và Tuyến.
+- [ ] Thêm logic Cache vào Redis (`tripCache.js`) cho kết quả tìm chuyến.
+- [ ] **Outbox Pattern:** Lưu log tìm kiếm vào bảng `outbox_events`.
+- [ ] **Outbox Pattern:** Viết cronjob `outboxWorker.js` đọc bảng để ném event `search-events` lên Kafka.
+
+## Giai đoạn 4: Module 2 - Seat Inventory Service (Kho ghế & Realtime)
+- [ ] Khởi tạo kết nối Redis trong `seat-service` (Service này không xài Postgres).
+- [ ] Viết gRPC Server lắng nghe lệnh Giữ ghế / Lấy sơ đồ ghế.
+- [ ] Cài đặt cơ chế **SETNX** trên Redis để giữ ghế nguyên tử (Atomic hold) kèm TTL 5 phút.
+- [ ] Viết logic nhả ghế (khi hết hạn TTL hoặc khách hủy).
+- [ ] Viết logic chốt ghế vĩnh viễn (chuyển sang trạng thái BOOKED khi đã thanh toán).
+- [ ] Phát sự kiện thay đổi trạng thái ghế lên kênh **Redis Pub/Sub** (`redisPubSub.js`).
+- [ ] Ở `api-gateway`, viết `seatEventsConsumer.js` lắng nghe Pub/Sub và đẩy dữ liệu về Frontend qua **GraphQL Subscriptions**.
+
+## Giai đoạn 5: Module 3 - Booking & Payment (Đặt vé & Thanh toán)
+- [ ] `booking-service`: Viết Knex Migrations tạo bảng `Bookings` và `Passengers`.
+- [ ] Viết State Machine: Trạng thái đơn hàng `DRAFT` -> `PENDING_PAYMENT` -> `PAID` -> `CANCELLED`.
+- [ ] Viết logic tạo Booking mới: Gọi gRPC sang `seat-service` để giữ ghế, nếu thành công thì tạo đơn hàng `PENDING`.
+- [ ] Viết logic giả lập xử lý trong `payment-service` (Trả về thành công/thất bại).
+- [ ] Tích hợp Saga/Outbox: Khi thanh toán thành công, ném event lên RabbitMQ.
+- [ ] `booking-service` lắng nghe event thanh toán, đổi trạng thái đơn sang `PAID` và gọi gRPC chốt ghế vĩnh viễn.
+- [ ] Đẩy sự kiện `booking.paid` vào Outbox để chuẩn bị sinh vé (RabbitMQ) và đẩy thống kê lên Kafka.
+
+## Giai đoạn 6: Các Worker Chạy Nền (Sinh vé & Gửi Email)
+- [ ] `ticket-worker`: Kết nối RabbitMQ, lắng nghe hàng đợi `booking.paid`.
+- [ ] Viết logic sinh file vé PDF/HTML chứa mã QR mô phỏng (`ticketGenerator.js`).
+- [ ] Khi sinh vé xong, phát tiếp event `ticket.issued` lên RabbitMQ.
+- [ ] `notification-worker`: Lắng nghe hàng đợi `ticket.issued`.
+- [ ] Viết logic giả lập gửi Email cho khách hàng chứa file vé vừa tạo.
+
+## Giai đoạn 7: Module 4 - Admin Service (Quản trị & Vận hành)
+- [ ] Viết Knex Migrations tạo bảng cấu hình Xe (`Bus`), Sơ đồ ghế template.
+- [ ] Viết gRPC Server cho các thao tác CRUD của Admin.
+- [ ] Áp dụng phân quyền: Ở Gateway kiểm tra Role = `ADMIN` mới truyền request xuống service này.
+- [ ] Viết logic Admin chủ động Khóa ghế trống (`BLOCKED`).
+- [ ] Viết logic `checkinService.js`: Staff quét mã QR/Mã vé để đổi trạng thái sang `CHECKED_IN`.
+
+## Giai đoạn 8: Module 5 - Analytics, Chatbot & MCP
+- [ ] `analytics-consumer`: Lắng nghe topic Kafka (`search-events`, `booking-events`, `payment-events`).
+- [ ] Lưu dữ liệu phân tích từ Kafka vào Database Analytics.
+- [ ] Trả API báo cáo doanh thu, tỷ lệ chuyển đổi cho `admin-service` làm Dashboard.
+- [ ] `chatbot-service`: Tích hợp AI SDK (OpenAI/Anthropic).
+- [ ] Khai báo Function Calling: Cho phép Chatbot gọi gRPC tìm chuyến xe và tra cứu mã vé.
+- [ ] Ứng dụng RAG: Cấp tài liệu Chính sách hủy vé dạng text để Chatbot đọc và tư vấn chính xác.
+- [ ] `mcp-server`: Định nghĩa các Tools và Resources theo chuẩn MCP để xuất ra cho AI Agent bên ngoài.
+
+## Giai đoạn 9: Kiểm thử Tối hậu & Đóng gói
+- [ ] Giả lập 2 người cùng gọi API giữ 1 ghế cùng lúc (Race condition test) - Đảm bảo chỉ 1 người được.
+- [ ] Chạy luồng Đặt vé nhưng không thanh toán - Đảm bảo ghế tự nhả ra sau 5 phút.
+- [ ] Hoàn thiện file cấu hình Nginx (`nginx.conf`) để Load Balancing gRPC.
+- [ ] Cấu hình Dockerfiles để đóng gói toàn bộ các service lên môi trường Production.

@@ -1,4 +1,5 @@
 # Định nghĩa cấu trúc cho hệ thống
+```text
 bus-booking-microservices/
 ├── api-gateway/                # GraphQL Server (Điểm vào duy nhất cho Web/App)
 │   ├── src/
@@ -39,6 +40,7 @@ bus-booking-microservices/
 ├── docker-compose.yml          # Setup toàn bộ Postgres, Redis, RabbitMQ, Kafka, Zookeeper, Nginx
 ├── package.json                # Định nghĩa workspaces cho toàn bộ repo
 └── README.md
+```
 
 # Cách vận hành hệ thống
 
@@ -82,3 +84,280 @@ bus-booking-microservices/
 ### 6. Các file cấu hình gốc (`docker-compose.yml` & `package.json`)
 - `package.json`: Định nghĩa kiến trúc Monorepo (Workspaces). Khi bạn gõ `npm install` ở thư mục ngoài cùng, nó sẽ tự động chạy vào từng service bên trong cài đúng thư viện cho từng thằng. Khi bạn gõ `npm run dev`, nó sẽ bật đồng loạt Gateway, các Services và các Workers lên.
 - `docker-compose.yml`: Kịch bản chạy hạ tầng. Chỉ với một lệnh `docker compose up -d`, nó sẽ tự động kéo Postgres, Redis, RabbitMQ, Kafka và Zookeeper về máy bạn, cài đặt và nối mạng chúng lại với nhau để các code Node.js của bạn có thể kết nối vào sử dụng.
+
+
+# Cấu trúc file
+
+Dưới đây là chi tiết các file cần thiết lập cho hệ thống Đặt vé xe khách, áp dụng theo chuẩn kiến trúc Microservices phân lớp (Layered Architecture, gRPC, RabbitMQ/Kafka, Outbox Pattern).
+
+### 1. API Gateway (GraphQL Server)
+Đóng vai trò làm "Lễ tân trung tâm", nhận request GraphQL từ Frontend Web/App và gọi xuống gRPC nội bộ.
+```text
+bus-booking-microservices/api-gateway/
+├── .env
+├── package.json
+└── src/
+    ├── grpcClients.js            # Khởi tạo các gRPC client (trip, seat, booking...)
+    ├── pubsub.js                 # Quản lý kênh Pub/Sub cho GraphQL Subscriptions
+    ├── resolvers.js              # Xử lý Logic điều hướng GraphQL -> gRPC
+    ├── schema.js                 # Định nghĩa GraphQL TypeDefs (Queries, Mutations, Subscriptions)
+    ├── seatEventsConsumer.js     # Lắng nghe message cập nhật trạng thái ghế real-time
+    ├── authService.js            # Logic mã hóa/giải mã JWT, xác thực User
+    ├── authRepository.js         # Truy vấn DB (Postgres) lấy thông tin user/phân quyền
+    ├── db.js                     # Khởi tạo kết nối DB cho riêng Gateway
+    └── server.js                 # Chạy Apollo GraphQL Server
+```
+
+### 2. Thư mục `services/` (Các Microservices Lõi)
+
+#### A. `trip-service` (Quản lý tuyến, chuyến xe và tìm kiếm)
+```text
+bus-booking-microservices/services/trip-service/
+├── .env
+├── knexfile.js
+├── package.json
+├── db/
+│   ├── migrations/
+│   │   ├── 20261010000000_create_routes_table.js
+│   │   ├── 20261010000001_create_trips_table.js
+│   │   └── 20261010000002_create_outbox_events.js
+│   └── seeds/
+│       └── 01_initial_routes_trips.js
+└── src/
+    ├── db.js                     # Khởi tạo kết nối Postgres (Knex)
+    ├── health.js                 # API Check health
+    ├── tripCache.js              # Logic lưu/đọc Cache từ Redis cho Search API
+    ├── tripGrpcHandlers.js       # Hứng request gRPC từ Gateway
+    ├── tripRepository.js         # Truy vấn DB (Knex) cho Chuyến (Trip)
+    ├── tripService.js            # Logic nghiệp vụ tìm chuyến, gợi ý chuyến
+    ├── routeRepository.js        # Truy vấn DB cho Tuyến (Route)
+    ├── routeService.js           # Logic quản lý Autocomplete Tuyến và Bến xe
+    ├── outboxEventRepository.js  # Lưu event vào bảng outbox
+    ├── outboxWorker.js           # Worker quét bảng outbox gửi lên RabbitMQ/Kafka
+    ├── kafkaPublisher.js         # Publish luồng sự kiện (search-events) lên Kafka
+    ├── rabbitmqPublisher.js      # Kết nối và gửi message lên RabbitMQ
+    └── server.js                 # Khởi chạy gRPC server
+```
+
+#### B. `seat-service` (Quản lý kho ghế - Single Source of Truth)
+*Lưu ý: Service này thao tác cường độ cao với Redis cho cơ chế giữ ghế (TTL).*
+```text
+bus-booking-microservices/services/seat-service/
+├── .env
+├── package.json
+└── src/
+    ├── health.js
+    ├── redisPubSub.js            # Kênh Real-time phát sự kiện trạng thái ghế cho Gateway
+    ├── rabbitmqPublisher.js      # Publish sự kiện khi ghế bị khóa/hết hạn
+    ├── seatGrpcHandlers.js       # Xử lý gRPC requests liên quan đến ghế
+    ├── seatRepository.js         # Giao tiếp với Redis (SETNX, TTL) và Postgres (nếu cần)
+    ├── seatService.js            # Xử lý logic tranh chấp ghế
+    └── server.js
+```
+
+#### C. `booking-service` (Kẻ điều phối - Saga Orchestrator)
+```text
+bus-booking-microservices/services/booking-service/
+├── .env
+├── knexfile.js
+├── package.json
+├── db/
+│   ├── migrations/
+│   │   ├── 20261010100000_create_bookings_table.js
+│   │   └── 20261010100001_create_outbox_events.js
+│   └── seeds/
+└── src/
+    ├── bookingGrpcHandlers.js    # Nhận lệnh tạo booking từ Gateway
+    ├── bookingRepository.js      # Ghi nhận trạng thái booking vào DB
+    ├── bookingService.js         # State machine điều phối (DRAFT -> PENDING -> PAID)
+    ├── db.js
+    ├── grpcClients.js            # Gọi ngược lại seat/payment service (Saga)
+    ├── outboxEventRepository.js
+    ├── outboxWorker.js
+    ├── paymentEventConsumer.js   # Lắng nghe kết quả từ payment-service
+    ├── kafkaPublisher.js         # Publish sự kiện phân tích (booking-events) lên Kafka
+    ├── rabbitmqPublisher.js      # Publish trạng thái nghiệp vụ (booking.paid) lên RabbitMQ
+    ├── health.js
+    └── server.js
+```
+
+#### D. Các Workers chạy nền (Ticket & Notification)
+Không có gRPC server, chỉ nằm chờ message từ RabbitMQ.
+```text
+bus-booking-microservices/services/ticket-worker/
+├── .env
+├── package.json
+└── src/
+    ├── bookingPaidConsumer.js    # Bắt event booking.paid từ RabbitMQ
+    ├── ticketGenerator.js        # Logic sinh file vé PDF/HTML, mã QR
+    ├── health.js
+    └── server.js
+
+bus-booking-microservices/services/notification-worker/
+├── .env
+├── package.json
+└── src/
+    ├── ticketIssuedConsumer.js   # Bắt event sinh vé thành công
+    ├── emailSender.js            # Giả lập gửi email cho khách hàng
+    ├── health.js
+    └── server.js
+```
+
+#### E. `payment-service` & `admin-service`
+```text
+bus-booking-microservices/services/payment-service/
+├── .env
+├── knexfile.js
+├── package.json
+├── db/
+│   ├── migrations/
+│   └── seeds/
+└── src/
+    ├── paymentGrpcHandlers.js
+    ├── paymentRepository.js
+    ├── paymentService.js         # Giả lập thanh toán
+    ├── outboxEventRepository.js
+    ├── outboxWorker.js
+    ├── kafkaPublisher.js         # Publish sự kiện (payment-events) lên Kafka
+    ├── rabbitmqPublisher.js      # Publish kết quả thanh toán lên RabbitMQ (Saga)
+    ├── db.js
+    ├── health.js
+    └── server.js
+
+bus-booking-microservices/services/admin-service/
+├── .env
+├── knexfile.js
+├── package.json
+├── db/
+│   ├── migrations/
+│   └── seeds/
+└── src/
+    ├── adminGrpcHandlers.js      # Phục vụ CRUD từ Gateway
+    ├── checkinService.js         # Dành cho Staff check-in mã vé/booking
+    ├── dashboardService.js       # Logic gọi thống kê phục vụ màn hình Admin
+    ├── adminRepository.js
+    ├── adminService.js
+    ├── outboxEventRepository.js
+    ├── outboxWorker.js
+    ├── rabbitmqPublisher.js      
+    ├── db.js
+    ├── health.js
+    └── server.js
+```
+
+#### F. Nhóm AI, Phân tích & Tích hợp (Module 5)
+```text
+bus-booking-microservices/services/analytics-consumer/
+├── .env
+├── package.json
+└── src/
+    ├── searchEventConsumer.js    # Bắt Kafka event search
+    ├── bookingEventConsumer.js   # Bắt Kafka event booking
+    ├── analyticsRepository.js    # Lưu trữ vào DB phục vụ report
+    ├── db.js
+    ├── health.js
+    └── server.js
+
+bus-booking-microservices/services/chatbot-service/
+├── .env
+├── package.json
+└── src/
+    ├── chatbotGrpcHandlers.js    # Hứng request trò chuyện
+    ├── aiSdk.js                  # Cấu hình AI Provider (OpenAI/Anthropic)
+    ├── toolCalling.js            # Khai báo các tool (tìm chuyến) cho AI
+    ├── rag.js                    # Đọc tài liệu chính sách
+    ├── health.js
+    └── server.js
+
+bus-booking-microservices/services/mcp-server/
+├── .env
+├── package.json
+└── src/
+    ├── tools.js                  # Định nghĩa mcp tools (search_trips...)
+    ├── resources.js              # Cung cấp policy tài liệu
+    ├── index.js                  # Khởi chạy MCP Server Stdout/SSE
+    └── package.json
+```
+
+### 3. Thư mục chia sẻ (`protos` và `packages`)
+
+```text
+bus-booking-microservices/
+├── protos/                       # Các file hợp đồng giao tiếp gRPC
+│   ├── admin.proto
+│   ├── booking.proto
+│   ├── payment.proto
+│   ├── seat.proto
+│   └── trip.proto
+│
+├── packages/                     # Thư mục chứa code dùng chung (Workspaces)
+│   ├── common-utils/
+│   │   ├── logger.js
+│   │   └── errorHandler.js
+│   └── event-schemas/
+│       ├── bookingEvents.json    # Schema cho event trên RabbitMQ
+│       ├── searchEvents.json     # Schema cho event trên Kafka
+│       └── paymentEvents.json    # Schema cho event thanh toán
+```
+
+### 4. Thư mục cấu hình Hạ tầng (`infrastructure`)
+```text
+bus-booking-microservices/infrastructure/
+├── init-db/
+│   ├── 01_init_trip_db.sql       # Script tạo DB cho trip-service
+│   ├── 02_init_booking_db.sql    # Script tạo DB cho booking-service
+│   ├── 03_init_admin_db.sql      # Script tạo DB cho admin-service
+│   ├── 04_init_analytics_db.sql  # Script tạo DB OLAP cho báo cáo thống kê
+│   ├── 05_init_payment_db.sql    # Script tạo DB cho payment-service
+│   └── 06_init_gateway_db.sql    # Script tạo DB quản lý tài khoản Users cho API Gateway
+├── nginx/
+│   └── nginx.conf                # Load balancing / Reverse Proxy gRPC
+└── docker-compose.yml            # Chạy toàn bộ Postgres, Redis, RabbitMQ, Kafka
+```
+
+# Công nghệ sử dụng cho chức năng
+
+Trong Microservices, nguyên tắc tối thượng là: **"Thằng nào cần dùng gì thì mới cài cái đó"**. Vì vậy cấu trúc file của các service không hề giống nhau. Dưới đây là phân loại chi tiết:
+
+### 1. Outbox Pattern
+**Không có tên trong bảng công nghệ cốt lõi, nhưng BẮT BUỘC phải có.**
+- **Vì sao?** Để đảm bảo RabbitMQ và Kafka không bị rớt mất tin nhắn khi mạng chập chờn, hoặc khi database lưu thành công nhưng đẩy event bị lỗi. Hệ thống áp dụng theo đặc tả "Event-driven cho các tác vụ không đồng bộ... đảm bảo tính nhất quán (Saga pattern)".
+- **Triển khai:** Được cấu thành từ chính **Postgres (DB)** (bảng `outbox_events`) và **NodeJS (Worker)** (`outboxWorker.js`) chứ không phải cài thêm phần mềm mới.
+
+### 2. Sự khác biệt giữa các nhóm Service
+
+#### Nhóm 1: "Lễ tân kiêm Bảo vệ" - `api-gateway`
+- **Công nghệ sài:** GraphQL, Redis (Pub/Sub để real-time), gRPC Client, **PostgreSQL (DB Users)**.
+- **Công nghệ KHÔNG sài:** Kafka, RabbitMQ, Outbox.
+- **Lý do:** Nó làm nhiệm vụ nhận request GraphQL từ Web, xác thực Token JWT (đóng vai trò Auth Service), gọi gRPC Client nhờ các service khác xử lý. Nó sử dụng Database riêng để lưu bảng `Users` và cấp quyền cho khách hàng/Admin.
+
+#### Nhóm 2: "Các phòng ban xử lý nghiệp vụ cốt lõi" (`trip`, `booking`, `payment`, `admin`)
+- **Công nghệ sài:** gRPC Server, PostgreSQL (Knex), RabbitMQ/Kafka, **Outbox Pattern**.
+- **Lý do:** Đây là trái tim của hệ thống. Khách gọi vào nó phải hứng (có `*GrpcHandlers.js`), lưu DB (có `knexfile.js`, `db/migrations`), rồi phát thông báo cho các bộ phận khác (có `outboxWorker.js`, `kafkaPublisher.js`, `rabbitmqPublisher.js`).
+
+#### Nhóm 3: "Kho ghế siêu tốc" - `seat-service`
+- **Công nghệ sài:** gRPC Server, **Redis** (dùng làm DB chính), Redis Pub/Sub.
+- **Công nghệ KHÔNG sài:** Postgres, Outbox, Kafka.
+- **Lý do:** Đặc tả yêu cầu *"Giữ ghế phải phản hồi dưới 1 giây"*. Do đó service này dùng **Redis** làm kho lưu trữ chính. Nó không xài Postgres nên không có `knexfile.js` hay `outboxWorker.js`. Khi có ghế đổi màu, nó báo thẳng qua `redisPubSub.js`.
+
+#### Nhóm 4: "Công nhân làm việc thầm lặng" (`ticket-worker`, `notification-worker`, `analytics-consumer`)
+- **Công nghệ sài:** RabbitMQ Consumer, Kafka Consumer.
+- **Công nghệ KHÔNG sài:** gRPC Server, GraphQL.
+- **Lý do:** Không ai gọi trực tiếp các worker này. Chúng chỉ âm thầm lắng nghe message. Vì không ai gọi nên không có `*GrpcHandlers.js`. Worker sinh vé/email không cần lưu trữ dài hạn nên không có DB. Riêng `analytics-consumer` nghe Kafka xong phải lưu lại nên có DB riêng (`analyticsRepository.js`).
+
+#### Nhóm 5: "AI thông minh" (`chatbot-service`, `mcp-server`)
+- **Công nghệ sài:** AI SDK, MCP Protocol, gRPC/GraphQL Client.
+- **Lý do:** Thuần túy làm logic kết nối với API của OpenAI/Claude (`aiSdk.js`, `tools.js`). Không giữ dữ liệu nội tại hệ thống nên không có DB hay Outbox.
+
+### 3. Giải thích các công nghệ cốt lõi
+Dưới đây là ý nghĩa và ví dụ thực tế cho từng công nghệ được chọn trong dự án:
+
+- **RabbitMQ (Dùng cho Nghiệp vụ quan trọng):** Giống như một "Bưu điện". Khi khách thanh toán xong, hệ thống ném một tin nhắn "đã thanh toán" vào Bưu điện. Bưu điện giữ an toàn lá thư này và đảm bảo giao tận tay cho bộ phận Sinh vé và Gửi email. Nhờ vậy, khách không phải chờ xoay vòng vòng trên web. Nếu hệ thống email bị sập, RabbitMQ vẫn giữ khư khư tin nhắn đó chờ đến khi mạng có lại mới gửi tiếp (an toàn tuyệt đối, không bao giờ mất vé).
+- **Kafka (Dùng cho Dữ liệu lớn/Thống kê):** Giống như "Đài phát thanh". Nó phát ra hàng triệu sự kiện (như "Ai đó vừa bấm tìm vé", "Ai đó vừa click xem sơ đồ ghế"). Bộ phận Phân tích (Analytics) mở đài lên nghe để vẽ biểu đồ doanh thu. Nếu lỡ rớt mạng mất một vài sự kiện thì cũng không làm sập chức năng mua vé chính của khách (tốc độ cao, tách biệt khỏi luồng chính).
+- **NextJS:** Công nghệ làm giao diện Web (Frontend). Giúp trang web load nhanh và đặc biệt là chuẩn SEO để Google dễ dàng quét được các trang như "Vé xe Sài Gòn đi Đà Lạt".
+- **GraphQL:** Lớp vỏ bảo vệ bên ngoài (API Gateway). Frontend chỉ cần gọi đúng một địa chỉ GraphQL này và đòi "Tôi muốn lấy thông tin vé và giá vé", GraphQL sẽ tự động đi vào bên trong, nhặt dữ liệu từ các service khác nhau rồi gộp lại trả cho Frontend một lần duy nhất.
+- **gRPC:** Ngôn ngữ giao tiếp nội bộ siêu tốc. Các phòng ban (services) bên trong hệ thống nói chuyện với nhau bằng gRPC thay vì API bình thường (REST) để đảm bảo tốc độ cực nhanh và dữ liệu cực kỳ khắt khe (strict schema - gửi thiếu dữ liệu là báo lỗi ngay lúc code).
+- **Redis:** Bộ nhớ đệm tốc độ ánh sáng. Khi khách bấm "Tìm chuyến", hệ thống không mò vào Database chậm chạp mà lôi thẳng kết quả từ Redis ra trả về trong 0.01 giây. Ngoài ra nó còn dùng để **giữ ghế tạm thời (TTL)**: khóa ghế 5 phút, hết giờ tự nhả.
+- **Nginx:** Cảnh sát giao thông (Load Balancer). Nếu có 10.000 người cùng truy cập, Nginx đứng ngoài cùng sẽ chia đều lượng người này ra cho 3-4 bản sao của máy chủ để không máy nào bị quá tải.
+- **AI SDK & MCP Server:** Cổng giao tiếp cho Trí tuệ nhân tạo. Giúp Chatbot có khả năng tự động vào Database tìm chuyến xe thật cho khách thay vì trả lời linh tinh (ảo giác). MCP Server giúp các con AI ở bên ngoài (như Claude trên máy tính anh) có thể thao tác thẳng vào hệ thống mà không cần mở trình duyệt Web.
+- **Outbox Pattern:** Giống như "Cuốn sổ tay ghi nhớ" bảo hiểm. Thay vì lưu dữ liệu xong chạy ngay ra bưu điện (RabbitMQ) gửi thư (nếu giữa đường vấp ngã hoặc bưu điện đóng cửa thì mất thư), hệ thống sẽ chép lá thư đó vào cuốn sổ tay (Database) trước. Sau đó có một anh nhân viên cần mẫn (`outboxWorker`) cứ 1 giây lật sổ ra 1 lần, thấy thư nào chưa gửi thì đem ra bưu điện gửi, gửi thành công mới gạch bỏ. Nhờ vậy, dù mạng mẽo có đứt đoạn, thư vẫn nằm an toàn trong sổ, đảm bảo không bao giờ thất lạc dữ liệu.
