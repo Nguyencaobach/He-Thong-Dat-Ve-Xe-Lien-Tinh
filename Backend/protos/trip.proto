@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package trip;
+
+service TripService {
+  rpc SearchTrips (SearchRequest) returns (SearchResponse);
+  rpc GetTripDetails (GetTripRequest) returns (TripResponse);
+}
+
+message SearchRequest {
+  string departure = 1;
+  string destination = 2;
+  string date = 3;
+}
+
+message SearchResponse {
+  repeated TripResponse trips = 1;
+}
+
+message GetTripRequest {
+  string tripId = 1;
+}
+
+message TripResponse {
+  string tripId = 1;
+  string routeName = 2;
+  string departureTime = 3;
+  string arrivalTime = 4;
+  double price = 5;
+  int32 availableSeats = 6;
+}

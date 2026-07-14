@@ -1,0 +1,16 @@
+{
+  "name": "bus-ticket-backend",
+  "version": "1.0.0",
+  "description": "Backend for Inter-city Bus Ticketing System",
+  "private": true,
+  "workspaces": [
+    "api-gateway",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "start:all": "echo 'Sẽ bổ sung lệnh chạy đồng loạt tất cả các service sau'"
+  },
+  "author": "",
+  "license": "ISC"
+}

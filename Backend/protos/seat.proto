@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package seat;
+
+service SeatService {
+  rpc GetSeatMap (SeatMapRequest) returns (SeatMapResponse);
+  rpc HoldSeat (HoldSeatRequest) returns (HoldSeatResponse);
+  rpc BookSeat (BookSeatRequest) returns (BookSeatResponse);
+}
+
+message SeatMapRequest {
+  string tripId = 1;
+}
+
+message Seat {
+  string seatId = 1;
+  string seatNumber = 2;
+  string status = 3; // AVAILABLE, HOLD, BOOKED
+}
+
+message SeatMapResponse {
+  string tripId = 1;
+  repeated Seat seats = 2;
+}
+
+message HoldSeatRequest {
+  string tripId = 1;
+  string seatId = 2;
+  string userId = 3;
+}
+
+message HoldSeatResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message BookSeatRequest {
+  string tripId = 1;
+  string seatId = 2;
+}
+
+message BookSeatResponse {
+  bool success = 1;
+  string message = 2;
+}

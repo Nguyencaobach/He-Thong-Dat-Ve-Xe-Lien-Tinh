@@ -5,12 +5,12 @@ Dưới đây là danh sách toàn bộ các task (công việc) đã được c
 ---
 
 ## Giai đoạn 1: Khởi tạo Hạ tầng & Nền tảng Dùng chung
-- [ ] Khởi chạy file `docker-compose.yml` để dựng Postgres, Redis, RabbitMQ, Kafka.
-- [ ] Định nghĩa `workspaces` trong `package.json` ở thư mục gốc để quản lý monorepo.
-- [ ] Cài đặt các package cơ bản cho thư mục `packages/common-utils` (Logger, Error Handler).
-- [ ] Định nghĩa Schema JSON cho các luồng event trong `packages/event-schemas`.
-- [ ] Viết code cho các file `.proto` (Định nghĩa gRPC interface cho Trip, Seat, Booking, Payment, Admin).
-- [ ] Cấu hình và chạy thử các script SQL tạo Database trong `infrastructure/init-db/`.
+- [x] Khởi chạy file `docker-compose.yml` để dựng Postgres, Redis, RabbitMQ, Kafka.
+- [x] Định nghĩa `workspaces` trong `package.json` ở thư mục gốc để quản lý monorepo.
+- [x] Cài đặt các package cơ bản cho thư mục `packages/common-utils` (Logger, Error Handler).
+- [x] Định nghĩa Schema JSON cho các luồng event trong `packages/event-schemas`.
+- [x] Viết code cho các file `.proto` (Định nghĩa gRPC interface cho Trip, Seat, Booking, Payment, Admin).
+- [x] Cấu hình và chạy thử các script SQL tạo Database trong `infrastructure/init-db/`.
 
 ## Giai đoạn 2: API Gateway & Authentication (Lễ tân kiêm Bảo vệ)
 - [ ] Khởi tạo dự án Apollo Server (GraphQL) trong `api-gateway`.

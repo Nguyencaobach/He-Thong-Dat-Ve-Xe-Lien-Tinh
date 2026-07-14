@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package payment;
+
+service PaymentService {
+  // Xử lý thanh toán
+  rpc ProcessPayment (ProcessPaymentRequest) returns (ProcessPaymentResponse);
+  // Kiểm tra trạng thái thanh toán
+  rpc CheckPaymentStatus (CheckPaymentStatusRequest) returns (CheckPaymentStatusResponse);
+}
+
+message ProcessPaymentRequest {
+  string bookingId = 1;
+  double amount = 2;
+  string paymentMethod = 3; // VNPay, Momo, CreditCard
+}
+
+message ProcessPaymentResponse {
+  bool success = 1;
+  string transactionId = 2;
+  string message = 3;
+}
+
+message CheckPaymentStatusRequest {
+  string transactionId = 1;
+}
+
+message CheckPaymentStatusResponse {
+  string status = 1; // SUCCESS, FAILED, PENDING
+}

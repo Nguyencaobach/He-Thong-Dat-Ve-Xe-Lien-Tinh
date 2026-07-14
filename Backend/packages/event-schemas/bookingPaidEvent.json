@@ -1,0 +1,11 @@
+{
+  "$id": "https://bus-booking.com/bookingPaidEvent.json",
+  "type": "object",
+  "properties": {
+    "bookingId": { "type": "string" },
+    "transactionId": { "type": "string" },
+    "amount": { "type": "number" },
+    "timestamp": { "type": "string", "format": "date-time" }
+  },
+  "required": ["bookingId", "transactionId", "amount", "timestamp"]
+}

@@ -1,0 +1,11 @@
+{
+  "$id": "https://bus-booking.com/searchEvent.json",
+  "type": "object",
+  "properties": {
+    "userId": { "type": ["string", "null"] },
+    "departure": { "type": "string" },
+    "destination": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" }
+  },
+  "required": ["departure", "destination", "timestamp"]
+}

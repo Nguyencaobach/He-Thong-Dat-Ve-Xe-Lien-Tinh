@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package booking;
+
+service BookingService {
+  // Tạo đơn đặt vé mới
+  rpc CreateBooking (CreateBookingRequest) returns (CreateBookingResponse);
+  // Lấy thông tin đơn vé
+  rpc GetBooking (GetBookingRequest) returns (BookingResponse);
+  // Hủy đơn vé
+  rpc CancelBooking (CancelBookingRequest) returns (CancelBookingResponse);
+}
+
+message CreateBookingRequest {
+  string userId = 1;
+  string tripId = 2;
+  repeated string seatIds = 3;
+}
+
+message CreateBookingResponse {
+  bool success = 1;
+  string bookingId = 2;
+  string message = 3;
+}
+
+message GetBookingRequest {
+  string bookingId = 1;
+}
+
+message BookingResponse {
+  string bookingId = 1;
+  string userId = 2;
+  string tripId = 3;
+  repeated string seatIds = 4;
+  double totalAmount = 5;
+  string status = 6; // PENDING, PAID, CANCELLED
+}
+
+message CancelBookingRequest {
+  string bookingId = 1;
+  string userId = 2;
+}
+
+message CancelBookingResponse {
+  bool success = 1;
+  string message = 2;
+}

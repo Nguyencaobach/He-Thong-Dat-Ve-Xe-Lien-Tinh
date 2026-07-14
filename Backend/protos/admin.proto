@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package admin;
+
+service AdminService {
+  // Lấy thống kê cho Dashboard
+  rpc GetDashboardStats (DashboardRequest) returns (DashboardResponse);
+  // Quản lý thông tin chuyến đi
+  rpc ManageTrip (ManageTripRequest) returns (ManageTripResponse);
+}
+
+message DashboardRequest {
+  string date = 1;
+}
+
+message DashboardResponse {
+  int32 totalBookings = 1;
+  double totalRevenue = 2;
+  int32 activeUsers = 3;
+}
+
+message ManageTripRequest {
+  string action = 1; // CREATE, UPDATE, DELETE
+  string tripId = 2;
+  string routeName = 3;
+}
+
+message ManageTripResponse {
+  bool success = 1;
+  string message = 2;
+}
