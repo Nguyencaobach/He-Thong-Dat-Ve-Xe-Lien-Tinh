@@ -34,13 +34,13 @@ Dưới đây là danh sách toàn bộ các task (công việc) đã được c
 - [x] **Outbox Pattern:** Viết cronjob `outboxWorker.js` đọc bảng để ném event `search-events` lên Kafka.
 
 ## Giai đoạn 4: Module 2 - Seat Inventory Service (Kho ghế & Realtime)
-- [ ] Khởi tạo kết nối Redis trong `seat-service` (Service này không xài Postgres).
-- [ ] Viết gRPC Server lắng nghe lệnh Giữ ghế / Lấy sơ đồ ghế.
-- [ ] Cài đặt cơ chế **SETNX** trên Redis để giữ ghế nguyên tử (Atomic hold) kèm TTL 5 phút.
-- [ ] Viết logic nhả ghế (khi hết hạn TTL hoặc khách hủy).
-- [ ] Viết logic chốt ghế vĩnh viễn (chuyển sang trạng thái BOOKED khi đã thanh toán).
-- [ ] Phát sự kiện thay đổi trạng thái ghế lên kênh **Redis Pub/Sub** (`redisPubSub.js`).
-- [ ] Ở `api-gateway`, viết `seatEventsConsumer.js` lắng nghe Pub/Sub và đẩy dữ liệu về Frontend qua **GraphQL Subscriptions**.
+- [x] Khởi tạo kết nối Redis trong `seat-service` (Service này không xài Postgres).
+- [x] Viết gRPC Server lắng nghe lệnh Giữ ghế / Lấy sơ đồ ghế.
+- [x] Cài đặt cơ chế **SETNX** trên Redis để giữ ghế nguyên tử (Atomic hold) kèm TTL 5 phút.
+- [x] Viết logic nhả ghế (khi hết hạn TTL hoặc khách hủy).
+- [x] Viết logic chốt ghế vĩnh viễn (chuyển sang trạng thái BOOKED khi đã thanh toán).
+- [x] Phát sự kiện thay đổi trạng thái ghế lên kênh **Redis Pub/Sub** (`redisPubSub.js`).
+- [x] Ở `api-gateway`, viết `seatEventsConsumer.js` lắng nghe Pub/Sub và đẩy dữ liệu về Frontend qua **GraphQL Subscriptions**.
 
 ## Giai đoạn 5: Module 3 - Booking & Payment (Đặt vé & Thanh toán)
 - [ ] `booking-service`: Viết Knex Migrations tạo bảng `Bookings` và `Passengers`.

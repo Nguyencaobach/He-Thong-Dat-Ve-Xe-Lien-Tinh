@@ -57,7 +57,21 @@ npm run seed      # Chèn 6 tuyến mẫu + ~100 chuyến 7 ngày tới
 cd ../..
 ```
 
-*(Giai đoạn 4 trở đi không cần migrate/seed — seat-service dùng Redis, không dùng Postgres)*
+### `booking-service` (Giai đoạn 5)
+```bash
+cd services/booking-service
+npm run migrate   # Tạo bảng: bookings, passengers, outbox_events
+cd ../..
+```
+
+### `payment-service` (Giai đoạn 5)
+```bash
+cd services/payment-service
+npm run migrate   # Tạo bảng: transactions
+cd ../..
+```
+
+*(seat-service không cần migrate/seed — dùng Redis, không dùng Postgres)*
 
 ---
 
@@ -78,6 +92,8 @@ Lệnh trên sử dụng `concurrently` để bật đồng loạt tất cả se
 | Xanh dương | `api-gateway` (HTTP + WebSocket) | 4000 |
 | Xanh lá | `trip-service` (gRPC) | 50051 |
 | Vàng | `seat-service` (gRPC) | 50052 |
+| Tím | `booking-service` (gRPC) | 50053 |
+| Xanh ngọc | `payment-service` (gRPC) | 50054 |
 
 Sau khi chạy, truy cập **GraphQL Sandbox** tại:
 ```
@@ -96,7 +112,7 @@ docker-compose up -d     # Tạo lại từ đầu
 
 ---
 
-## 📋 Tóm tắt lệnh nhanh — Fresh Start (Giai đoạn 4)
+## 📋 Tóm tắt lệnh nhanh — Fresh Start (Giai đoạn 5)
 
 ```bash
 # ── Từ thư mục Backend ──────────────────────────────
@@ -104,17 +120,17 @@ npm install                           # 1. Cài thư viện (tất cả service)
 
 docker-compose up -d                  # 2. Khởi động hạ tầng
 
-# ── Tạo bảng + Seed cho trip-service ────────────────
-cd services/trip-service
-npm run migrate                       # 3. Tạo bảng trip_db
-npm run seed                          # 4. Chèn dữ liệu mẫu
-cd ../..
+# ── Tạo bảng cho các service dùng Postgres ──────────
+cd services/trip-service && npm run migrate && npm run seed && cd ../..
+cd services/booking-service && npm run migrate && cd ../..
+cd services/payment-service && npm run migrate && cd ../..
 
 # ── Khởi động tất cả service ────────────────────────
-npm run dev                           # 5. Bật đồng loạt: gateway + trip + seat
+npm run kill                          # Dọn port cũ (nếu cần)
+npm run dev                           # Bật đồng loạt: gateway + trip + seat + booking + payment
 ```
 
-> ⚠️ **Lưu ý Giai đoạn 4:** `seat-service` không cần migrate/seed vì dùng Redis làm database chính (không có Postgres). Redis đã được Docker khởi động ở Bước 2.
+> ⚠️ **Lưu ý Giai đoạn 5:** `booking-service` (50053) và `payment-service` (50054) cần migrate trước khi chạy.
 
 ---
 
@@ -124,5 +140,6 @@ npm run dev                           # 5. Bật đồng loạt: gateway + trip 
 |---|---|---|---|
 | **Đồng bộ (gRPC)** | api-gateway, trip-service | Local (npm run dev) | trip-service: ✅ |
 | **Đồng bộ (gRPC) — G4** | seat-service | Local (npm run dev) | ❌ (dùng Redis) |
+| **Đồng bộ (gRPC) — G5** | booking-service, payment-service | Local (npm run dev) | ✅ (migrate) |
 | **Bất đồng bộ (Worker)** | ticket-worker, notification-worker, analytics-consumer | Docker (Giai đoạn sau) | ❌ |
 | **Hạ tầng** | Postgres, Redis, RabbitMQ, Kafka | Docker | ❌ (tự động) |
