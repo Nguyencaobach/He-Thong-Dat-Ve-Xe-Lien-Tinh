@@ -9,12 +9,17 @@
     "packages/*"
   ],
   "scripts": {
-    "start:all": "echo 'Sẽ bổ sung lệnh chạy đồng loạt tất cả các service sau'",
+    "dev": "concurrently -n \"GATEWAY,TRIP,SEAT\" -c \"bgBlue,bgGreen,bgYellow\" \"npm run dev --workspace=api-gateway\" \"npm run dev --workspace=trip-service\" \"npm run dev --workspace=seat-service\"",
+    "kill": "powershell -Command \"Get-NetTCPConnection -LocalPort 4000,50051,50052 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; Write-Host 'Killed all service ports'\"",
     "dev:gateway": "npm run dev --workspace=api-gateway",
     "dev:trip": "npm run dev --workspace=trip-service",
     "dev:seat": "npm run dev --workspace=seat-service",
     "dev:booking": "npm run dev --workspace=booking-service"
   },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
   "author": "",
   "license": "ISC"
 }
+

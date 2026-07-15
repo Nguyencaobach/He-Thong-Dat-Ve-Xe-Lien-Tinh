@@ -1,14 +1,19 @@
 /**
- * resolvers.js - Xử lý logic điều hướng GraphQL → gRPC
+ * resolvers.js - Xử lý logic điều hướng GraphQL → gRPC (Updated: Giai đoạn 4)
+ *
+ * Thay đổi so với Giai đoạn 3:
+ * - Subscription.seatStatusUpdated: Thêm filter theo tripId
+ *   để mỗi client chỉ nhận sự kiện của chuyến họ đang xem,
+ *   không nhận sự kiện của tất cả chuyến trong hệ thống.
  *
  * Nhờ promisifyClient trong grpcClients.js, mỗi Resolver chỉ cần:
  *   const result = await clients.trip.SearchTrips({ departure, destination, date })
- * Không còn callback hell hay new Promise() lặp đi lặp lại.
  */
 
 const authService = require('./authService');
 const { clients } = require('./grpcClients');
 const { pubsub, EVENTS } = require('./pubsub');
+const { withFilter } = require('graphql-subscriptions');
 
 // ── Helpers kiểm tra quyền ───────────────────────────────────────────────────
 function requireAuth(context) {
@@ -105,11 +110,31 @@ const resolvers = {
     },
   },
 
-  // ── SUBSCRIPTIONS (Module 2 - real-time seat updates) ──
+  // ── SUBSCRIPTIONS (Module 2 - real-time seat updates) ──────────────────────
   Subscription: {
     seatStatusUpdated: {
-      subscribe: (_, { tripId }) =>
-        pubsub.asyncIterator([EVENTS.SEAT_STATUS_UPDATED]),
+      /**
+       * Filter: Chỉ gửi sự kiện đến client đang subscribe đúng tripId
+       *
+       * Nếu không có filter:
+       * - Client xem chuyến A01 cũng sẽ nhận sự kiện ghế của chuyến B02, C03...
+       * - Lãng phí bandwidth và gây nhầm lẫn
+       *
+       * withFilter(asyncIterator, filterFn):
+       * - asyncIterator: Nguồn event (PubSub channel)
+       * - filterFn: Hàm trả về true nếu event này cần gửi đến subscriber này
+       *   - payload: Dữ liệu từ pubsub.publish(...)
+       *   - variables: Tham số từ GraphQL Subscription query (ở đây là { tripId })
+       */
+      subscribe: withFilter(
+        // Nguồn event — lắng nghe tất cả sự kiện SEAT_STATUS_UPDATED
+        () => pubsub.asyncIterator([EVENTS.SEAT_STATUS_UPDATED]),
+        // Filter: chỉ giữ lại sự kiện của đúng tripId mà client đang subscribe
+        (payload, variables) => {
+          return payload.seatStatusUpdated.tripId === variables.tripId;
+        }
+      ),
+      // Resolve: Extract đúng object Seat từ payload để trả về cho client
       resolve: (payload) => payload.seatStatusUpdated,
     },
   },

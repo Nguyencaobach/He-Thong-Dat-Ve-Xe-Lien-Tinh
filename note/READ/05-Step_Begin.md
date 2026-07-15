@@ -57,7 +57,7 @@ npm run seed      # Chèn 6 tuyến mẫu + ~100 chuyến 7 ngày tới
 cd ../..
 ```
 
-*(Các service tiếp theo sẽ bổ sung vào đây khi hoàn thiện từng giai đoạn)*
+*(Giai đoạn 4 trở đi không cần migrate/seed — seat-service dùng Redis, không dùng Postgres)*
 
 ---
 
@@ -66,12 +66,18 @@ cd ../..
 Các service giao tiếp gRPC cần chạy local:
 
 ```bash
-# API Gateway (GraphQL, port 4000)
-npm run dev --workspace=api-gateway
-
-# Trip/Search Service (gRPC, port 50051) — Giai đoạn 3
-npm run dev --workspace=trip-service
+# Chạy TẤT CẢ service bằng 1 lệnh duy nhất (từ thư mục Backend)
+npm run kill
+npm run dev
 ```
+
+Lệnh trên sử dụng `concurrently` để bật đồng loạt tất cả service trong cùng một terminal, mỗi service được tô màu riêng để phân biệt:
+
+| Màu | Service | Port |
+|---|---|---|
+| Xanh dương | `api-gateway` (HTTP + WebSocket) | 4000 |
+| Xanh lá | `trip-service` (gRPC) | 50051 |
+| Vàng | `seat-service` (gRPC) | 50052 |
 
 Sau khi chạy, truy cập **GraphQL Sandbox** tại:
 ```
@@ -90,11 +96,11 @@ docker-compose up -d     # Tạo lại từ đầu
 
 ---
 
-## 📋 Tóm tắt lệnh nhanh — Fresh Start (Giai đoạn 3)
+## 📋 Tóm tắt lệnh nhanh — Fresh Start (Giai đoạn 4)
 
 ```bash
 # ── Từ thư mục Backend ──────────────────────────────
-npm install                           # 1. Cài thư viện
+npm install                           # 1. Cài thư viện (tất cả service)
 
 docker-compose up -d                  # 2. Khởi động hạ tầng
 
@@ -104,10 +110,11 @@ npm run migrate                       # 3. Tạo bảng trip_db
 npm run seed                          # 4. Chèn dữ liệu mẫu
 cd ../..
 
-# ── Khởi động service ────────────────────────────────
-npm run dev --workspace=api-gateway   # 5. API Gateway
-npm run dev --workspace=trip-service  # 6. Trip Service (terminal khác)
+# ── Khởi động tất cả service ────────────────────────
+npm run dev                           # 5. Bật đồng loạt: gateway + trip + seat
 ```
+
+> ⚠️ **Lưu ý Giai đoạn 4:** `seat-service` không cần migrate/seed vì dùng Redis làm database chính (không có Postgres). Redis đã được Docker khởi động ở Bước 2.
 
 ---
 
@@ -116,5 +123,6 @@ npm run dev --workspace=trip-service  # 6. Trip Service (terminal khác)
 | Loại | Service | Chạy ở đâu | Cần migrate/seed? |
 |---|---|---|---|
 | **Đồng bộ (gRPC)** | api-gateway, trip-service | Local (npm run dev) | trip-service: ✅ |
+| **Đồng bộ (gRPC) — G4** | seat-service | Local (npm run dev) | ❌ (dùng Redis) |
 | **Bất đồng bộ (Worker)** | ticket-worker, notification-worker, analytics-consumer | Docker (Giai đoạn sau) | ❌ |
 | **Hạ tầng** | Postgres, Redis, RabbitMQ, Kafka | Docker | ❌ (tự động) |

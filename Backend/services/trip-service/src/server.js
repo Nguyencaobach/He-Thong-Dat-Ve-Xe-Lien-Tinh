@@ -17,7 +17,7 @@ const db = require('./db');
 
 const GRPC_PORT = process.env.GRPC_PORT || '50051';
 const GRPC_HOST = process.env.GRPC_HOST || '0.0.0.0';
-const PROTO_PATH = path.resolve(__dirname, '../../protos/trip.proto');
+const PROTO_PATH = path.resolve(__dirname, '../../../protos/trip.proto');
 
 // ── Load proto ───────────────────────────────────────────────────────────────
 function loadTripProto() {
@@ -86,3 +86,4 @@ async function start() {
 }
 
 start();
+
