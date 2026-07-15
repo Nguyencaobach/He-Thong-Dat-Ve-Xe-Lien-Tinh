@@ -9,15 +9,16 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n \"GATEWAY,TRIP,SEAT,BOOKING,PAYMENT,TICKET,NOTIFY\" -c \"bgBlue,bgGreen,bgYellow,bgMagenta,bgCyan,bgRed,bgWhite\" \"npm run dev --workspace=api-gateway\" \"npm run dev --workspace=trip-service\" \"npm run dev --workspace=seat-service\" \"npm run dev --workspace=booking-service\" \"npm run dev --workspace=payment-service\" \"npm run dev --workspace=ticket-worker\" \"npm run dev --workspace=notification-worker\"",
-    "kill": "powershell -Command \"Get-NetTCPConnection -LocalPort 4000,50051,50052,50053,50054 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; Write-Host 'Killed all service ports'\"",
+    "dev": "concurrently -n \"GATEWAY,TRIP,SEAT,BOOKING,PAYMENT,TICKET,NOTIFY,ADMIN\" -c \"bgBlue,bgGreen,bgYellow,bgMagenta,bgCyan,bgRed,bgWhite,bgGray\" \"npm run dev --workspace=api-gateway\" \"npm run dev --workspace=trip-service\" \"npm run dev --workspace=seat-service\" \"npm run dev --workspace=booking-service\" \"npm run dev --workspace=payment-service\" \"npm run dev --workspace=ticket-worker\" \"npm run dev --workspace=notification-worker\" \"npm run dev --workspace=admin-service\"",
+    "kill": "powershell -Command \"Get-NetTCPConnection -LocalPort 4000,50051,50052,50053,50054,50055 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; Write-Host 'Killed all service ports'\"",
     "dev:gateway": "npm run dev --workspace=api-gateway",
     "dev:trip": "npm run dev --workspace=trip-service",
     "dev:seat": "npm run dev --workspace=seat-service",
     "dev:booking": "npm run dev --workspace=booking-service",
     "dev:payment": "npm run dev --workspace=payment-service",
     "dev:ticket": "npm run dev --workspace=ticket-worker",
-    "dev:notify": "npm run dev --workspace=notification-worker"
+    "dev:notify": "npm run dev --workspace=notification-worker",
+    "dev:admin": "npm run dev --workspace=admin-service"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

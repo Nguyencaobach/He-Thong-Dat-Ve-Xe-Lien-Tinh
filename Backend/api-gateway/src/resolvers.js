@@ -29,6 +29,14 @@ function requireAdmin(context) {
   }
 }
 
+// ADMIN hoặc STAFF đều được check-in (Đặc tả 7.2 điểm 6)
+function requireAdminOrStaff(context) {
+  requireAuth(context);
+  if (!['ADMIN', 'STAFF'].includes(context.user.role)) {
+    throw new Error('Chức năng này chỉ dành cho ADMIN hoặc STAFF.');
+  }
+}
+
 // ── Resolvers ────────────────────────────────────────────────────────────────
 const resolvers = {
 
@@ -64,10 +72,20 @@ const resolvers = {
       return await clients.payment.CheckPaymentStatus({ transactionId });
     },
 
-    // ── ADMIN (Module 4) — chỉ ADMIN ──
+    // ── ADMIN (Module 4) — chỉ ADMIN/STAFF ──
     getDashboardStats: async (_, { date }, context) => {
       requireAdmin(context);
       return await clients.admin.GetDashboardStats({ date });
+    },
+
+    listBuses: async (_, { status, limit, offset }, context) => {
+      requireAdminOrStaff(context);
+      return await clients.admin.ListBuses({ status: status || '', limit: limit || 20, offset: offset || 0 });
+    },
+
+    getBus: async (_, { busId }, context) => {
+      requireAdminOrStaff(context);
+      return await clients.admin.GetBus({ busId });
     },
   },
 
@@ -107,6 +125,36 @@ const resolvers = {
     manageTrip: async (_, args, context) => {
       requireAdmin(context);
       return await clients.admin.ManageTrip(args);
+    },
+
+    createBus: async (_, { licensePlate, busType, totalSeats, status }, context) => {
+      requireAdmin(context);
+      return await clients.admin.CreateBus({ licensePlate, busType, totalSeats, status: status || 'ACTIVE' });
+    },
+
+    deleteBus: async (_, { busId }, context) => {
+      requireAdmin(context);
+      return await clients.admin.DeleteBus({ busId });
+    },
+
+    blockSeat: async (_, { tripId, seatId, reason }, context) => {
+      requireAdmin(context);
+      return await clients.admin.BlockSeat({ tripId, seatId, adminId: context.user.userId, reason: reason || '' });
+    },
+
+    unblockSeat: async (_, { tripId, seatId }, context) => {
+      requireAdmin(context);
+      return await clients.admin.UnblockSeat({ tripId, seatId, adminId: context.user.userId });
+    },
+
+    // Check-in: cả ADMIN và STAFF đều được (Đặc tả 7.2 điểm 6)
+    checkIn: async (_, { qrCode, tripId, staffId }, context) => {
+      requireAdminOrStaff(context);
+      return await clients.admin.CheckIn({
+        qrCode,
+        tripId,
+        staffId: staffId || context.user.userId,
+      });
     },
   },
 

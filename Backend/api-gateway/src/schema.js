@@ -137,18 +137,48 @@ const typeDefs = gql`
   }
 
   # ─────────────────────────────────────────────
-  # ADMIN TYPES (từ admin.proto)
+  # ADMIN TYPES (từ admin.proto — Giai đoạn 7)
   # ─────────────────────────────────────────────
 
   type DashboardStats {
     totalBookings: Int!
-    totalRevenue: Float!
-    activeUsers: Int!
+    totalRevenue:  Float!
+    activeUsers:   Int!
+    totalTrips:    Int!
+    totalBuses:    Int!
   }
 
   type ManageTripResult {
     success: Boolean!
     message: String!
+  }
+
+  type Bus {
+    busId:        ID!
+    licensePlate: String!
+    busType:      String!
+    totalSeats:   Int!
+    seatLayout:   String   # JSON string: cấu hình sơ đồ ghế
+    status:       String!
+    createdAt:    String
+  }
+
+  type BusListResult {
+    buses: [Bus!]!
+    total: Int!
+  }
+
+  type SimpleAdminResult {
+    success: Boolean!
+    message: String!
+  }
+
+  type CheckInResult {
+    success:       Boolean!
+    message:       String!
+    bookingId:     ID
+    passengerName: String
+    seatNumber:    String
   }
 
   # ─────────────────────────────────────────────
@@ -182,6 +212,12 @@ const typeDefs = gql`
     # ADMIN - Module 4 (chỉ ADMIN/STAFF mới được gọi)
     "Dashboard thống kê cho Admin (Module 4)"
     getDashboardStats(date: String!): DashboardStats
+
+    "Lấy danh sách xe (Admin)"
+    listBuses(status: String, limit: Int, offset: Int): BusListResult!
+
+    "Lấy thông tin một xe"
+    getBus(busId: ID!): Bus
   }
 
   # ─────────────────────────────────────────────
@@ -214,6 +250,21 @@ const typeDefs = gql`
     # ADMIN - Module 4
     "Thêm/Sửa/Xóa chuyến xe (chỉ ADMIN)"
     manageTrip(action: String!, tripId: ID, routeName: String): ManageTripResult!
+
+    "Tạo xe mới (chỉ ADMIN)"
+    createBus(licensePlate: String!, busType: String!, totalSeats: Int!, status: String): Bus!
+
+    "Xóa xe (chỉ ADMIN)"
+    deleteBus(busId: ID!): SimpleAdminResult!
+
+    "Admin khóa ghế không bán cho một chuyến cụ thể (chỉ ADMIN)"
+    blockSeat(tripId: ID!, seatId: ID!, reason: String): SimpleAdminResult!
+
+    "Admin mở khóa ghế đã bị khóa (chỉ ADMIN)"
+    unblockSeat(tripId: ID!, seatId: ID!): SimpleAdminResult!
+
+    "Staff check-in hành khách bằng mã QR hoặc mã vé (ADMIN hoặc STAFF)"
+    checkIn(qrCode: String!, tripId: ID!, staffId: String): CheckInResult!
   }
 
   # ─────────────────────────────────────────────

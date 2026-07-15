@@ -59,11 +59,11 @@ Dưới đây là danh sách toàn bộ các task (công việc) đã được c
 - [x] Viết logic giả lập gửi Email cho khách hàng chứa file vé vừa tạo.
 
 ## Giai đoạn 7: Module 4 - Admin Service (Quản trị & Vận hành)
-- [ ] Viết Knex Migrations tạo bảng cấu hình Xe (`Bus`), Sơ đồ ghế template.
-- [ ] Viết gRPC Server cho các thao tác CRUD của Admin.
-- [ ] Áp dụng phân quyền: Ở Gateway kiểm tra Role = `ADMIN` mới truyền request xuống service này.
-- [ ] Viết logic Admin chủ động Khóa ghế trống (`BLOCKED`).
-- [ ] Viết logic `checkinService.js`: Staff quét mã QR/Mã vé để đổi trạng thái sang `CHECKED_IN`.
+- [x] Viết Knex Migrations tạo bảng cấu hình Xe (`Bus`), Sơ đồ ghế template.
+- [x] Viết gRPC Server cho các thao tác CRUD của Admin.
+- [x] Áp dụng phân quyền: Ở Gateway kiểm tra Role = `ADMIN` mới truyền request xuống service này.
+- [x] Viết logic Admin chủ động Khóa ghế trống (`BLOCKED`).
+- [x] Viết logic `checkinService.js`: Staff quét mã QR/Mã vé để đổi trạng thái sang `CHECKED_IN`.
 
 ## Giai đoạn 8: Module 5 - Analytics, Chatbot & MCP
 - [ ] `analytics-consumer`: Lắng nghe topic Kafka (`search-events`, `booking-events`, `payment-events`).

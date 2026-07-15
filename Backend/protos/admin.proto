@@ -2,30 +2,159 @@ syntax = "proto3";
 
 package admin;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// AdminService — Giao diện gRPC cho api-gateway gọi vào admin-service
+//
+// Chức năng (Đặc tả 7.2):
+//   - Dashboard stats
+//   - CRUD Bus (xe khách) + SeatLayout template
+//   - Quản lý chuyến (kích hoạt/khóa)
+//   - Xem danh sách booking theo chuyến
+//   - Chốt trạng thái chuyến (DEPARTED, COMPLETED)
+//   - Khóa ghế (BLOCKED)
+//   - Check-in hành khách
+// ─────────────────────────────────────────────────────────────────────────────
 service AdminService {
-  // Lấy thống kê cho Dashboard
-  rpc GetDashboardStats (DashboardRequest) returns (DashboardResponse);
-  // Quản lý thông tin chuyến đi
-  rpc ManageTrip (ManageTripRequest) returns (ManageTripResponse);
+  // Dashboard
+  rpc GetDashboardStats   (DashboardRequest)    returns (DashboardResponse);
+
+  // Bus CRUD
+  rpc CreateBus           (CreateBusRequest)    returns (BusResponse);
+  rpc GetBus              (GetBusRequest)       returns (BusResponse);
+  rpc ListBuses           (ListBusesRequest)    returns (ListBusesResponse);
+  rpc UpdateBus           (UpdateBusRequest)    returns (BusResponse);
+  rpc DeleteBus           (DeleteBusRequest)    returns (SimpleResponse);
+
+  // Trip management
+  rpc ManageTrip          (ManageTripRequest)   returns (ManageTripResponse);
+  rpc ListBookingsByTrip  (TripBookingsRequest) returns (TripBookingsResponse);
+
+  // Seat management (Admin khóa ghế — BLOCKED)
+  rpc BlockSeat           (BlockSeatRequest)    returns (SimpleResponse);
+  rpc UnblockSeat         (BlockSeatRequest)    returns (SimpleResponse);
+
+  // Check-in
+  rpc CheckIn             (CheckInRequest)      returns (CheckInResponse);
 }
 
+// ── Dashboard ─────────────────────────────────────────────────────────────────
 message DashboardRequest {
-  string date = 1;
+  string date = 1; // ISO date string: "2026-10-15"
 }
 
 message DashboardResponse {
-  int32 totalBookings = 1;
-  double totalRevenue = 2;
-  int32 activeUsers = 3;
+  int32  totalBookings  = 1;
+  double totalRevenue   = 2;
+  int32  activeUsers    = 3;
+  int32  totalTrips     = 4;
+  int32  totalBuses     = 5;
 }
 
+// ── Bus ───────────────────────────────────────────────────────────────────────
+message CreateBusRequest {
+  string licensePlate = 1;  // Biển số xe
+  string busType      = 2;  // SLEEPER_34 | SEAT_29 | LIMOUSINE_22
+  int32  totalSeats   = 3;
+  string seatLayout   = 4;  // JSON string: cấu hình sơ đồ ghế
+  string status       = 5;  // ACTIVE | MAINTENANCE | INACTIVE
+}
+
+message GetBusRequest {
+  string busId = 1;
+}
+
+message UpdateBusRequest {
+  string busId       = 1;
+  string licensePlate = 2;
+  string busType      = 3;
+  int32  totalSeats   = 4;
+  string seatLayout   = 5;
+  string status       = 6;
+}
+
+message DeleteBusRequest {
+  string busId = 1;
+}
+
+message ListBusesRequest {
+  string status = 1; // Filter: ACTIVE | MAINTENANCE | "" = all
+  int32  limit  = 2;
+  int32  offset = 3;
+}
+
+message BusResponse {
+  string busId       = 1;
+  string licensePlate = 2;
+  string busType      = 3;
+  int32  totalSeats   = 4;
+  string seatLayout   = 5; // JSON string
+  string status       = 6;
+  string createdAt    = 7;
+}
+
+message ListBusesResponse {
+  repeated BusResponse buses = 1;
+  int32 total = 2;
+}
+
+// ── Trip Management ───────────────────────────────────────────────────────────
 message ManageTripRequest {
-  string action = 1; // CREATE, UPDATE, DELETE
-  string tripId = 2;
-  string routeName = 3;
+  string action  = 1; // ACTIVATE | LOCK | SET_DEPARTED | SET_COMPLETED
+  string tripId  = 2;
+  string routeName = 3; // Dùng khi action = ACTIVATE (optional)
 }
 
 message ManageTripResponse {
-  bool success = 1;
+  bool   success = 1;
+  string message = 2;
+}
+
+message TripBookingsRequest {
+  string tripId = 1;
+  string status = 2; // Filter: PAID | PENDING | "" = all
+  int32  limit  = 3;
+  int32  offset = 4;
+}
+
+message TripBookingsResponse {
+  repeated BookingSummary bookings = 1;
+  int32 total = 2;
+}
+
+message BookingSummary {
+  string bookingId    = 1;
+  string userId       = 2;
+  repeated string seatIds = 3;
+  double totalAmount  = 4;
+  string status       = 5;
+  string createdAt    = 6;
+}
+
+// ── Seat Block ────────────────────────────────────────────────────────────────
+message BlockSeatRequest {
+  string tripId  = 1;
+  string seatId  = 2;
+  string adminId = 3; // Ai đã khóa
+  string reason  = 4; // Lý do khóa (tùy chọn)
+}
+
+// ── Check-in ──────────────────────────────────────────────────────────────────
+message CheckInRequest {
+  string qrCode    = 1; // QR code hoặc mã vé (ticketId)
+  string tripId    = 2;
+  string staffId   = 3;
+}
+
+message CheckInResponse {
+  bool   success      = 1;
+  string message      = 2;
+  string bookingId    = 3;
+  string passengerName = 4;
+  string seatNumber   = 5;
+}
+
+// ── Shared ────────────────────────────────────────────────────────────────────
+message SimpleResponse {
+  bool   success = 1;
   string message = 2;
 }
