@@ -12,46 +12,27 @@ Mở Terminal tại thư mục **`Backend`** và gõ:
 npm install
 ```
 
-*(Giải thích: Nhờ cơ chế NPM Workspaces đã thiết lập, lệnh này tự động quét qua tất cả service và các gói dùng chung như `common-utils`, `event-schemas` để tải mọi thư viện cần thiết. Không cần chui vào từng thư mục để chạy lẻ tẻ.)*
+*(Giải thích: Nhờ cơ chế NPM Workspaces, lệnh này tự động quét qua tất cả service và các gói dùng chung (`common-utils`, `event-schemas`) để tải mọi thư viện cần thiết — không cần chui vào từng thư mục chạy riêng.)*
 
 ---
 
 ## Bước 2: Khởi động Hạ tầng & Tự tạo Cơ sở dữ liệu
 
-Vẫn ở Terminal đó, gõ:
-
 ```bash
 docker-compose up -d
 ```
 
-*(Giải thích: Docker sẽ kéo Postgres, Redis, RabbitMQ, Kafka, Zookeeper về. Đặc biệt, Postgres sẽ tự động đọc thư mục `infrastructure/init-db/` để:*
-- *Tạo sẵn 6 Database rỗng (`trip_db`, `booking_db`, `admin_db`, `analytics_db`, `payment_db`, `users_db`)*
-- *Tạo bảng `users` trong `users_db` (từ `06_init_gateway_db.sql`)*
-
-*Tất cả tự động, không cần mở DBeaver hay pgAdmin.)*
+Docker sẽ khởi động 5 container và Postgres tự động chạy scripts trong `infrastructure/init-db/`:
+- Tạo sẵn 6 Database rỗng (`trip_db`, `booking_db`, `admin_db`, `analytics_db`, `payment_db`, `users_db`)
+- Tạo bảng `users` trong `users_db` (từ `06_init_gateway_db.sql`)
 
 ---
 
-## ⚠️ Lưu ý: Khi cần Reset toàn bộ dữ liệu
-
-Nếu muốn xóa sạch dữ liệu cũ và tạo lại từ đầu (ví dụ: thêm bảng mới vào file SQL init):
-
-```bash
-docker-compose down -v
-docker-compose up -d
-```
-
-*(Lệnh `-v` xóa volume cũ, ép Postgres khởi tạo lại từ đầu và chạy lại toàn bộ script trong `init-db/`.)*
-
----
-
-## Bước 3: Kiểm tra Docker đã chạy đủ các service chưa
+## Bước 3: Kiểm tra Docker đã chạy đủ chưa
 
 ```bash
 docker ps
 ```
-
-Bạn sẽ thấy 5 container đang chạy:
 
 | Container | Image | Port |
 |---|---|---|
@@ -63,42 +44,77 @@ Bạn sẽ thấy 5 container đang chạy:
 
 ---
 
-## Bước 4: Kiểm tra bảng `users` đã tạo thành công chưa
+## Bước 4: Chạy Migration & Seed cho các Service (Knex)
 
+Các service dùng Knex cần tạo bảng và chèn dữ liệu mẫu thủ công.
+> ⚠️ Bắt buộc theo thứ tự: **migrate → seed**
+
+### `trip-service` (Giai đoạn 3)
 ```bash
-docker exec -it bus_postgres psql -U admin -d users_db -c "\d users"
+cd services/trip-service
+npm run migrate   # Tạo bảng: routes, trips, outbox_events
+npm run seed      # Chèn 6 tuyến mẫu + ~100 chuyến 7 ngày tới
+cd ../..
 ```
 
-*(Nếu thấy cấu trúc bảng hiện ra là thành công.)*
+*(Các service tiếp theo sẽ bổ sung vào đây khi hoàn thiện từng giai đoạn)*
 
 ---
 
-## Bước 5: Khởi động API Gateway
+## Bước 5: Khởi động các Service (đồng bộ — chạy local)
+
+Các service giao tiếp gRPC cần chạy local:
 
 ```bash
-# Chạy trong môi trường development (tự reload khi sửa code)
+# API Gateway (GraphQL, port 4000)
 npm run dev --workspace=api-gateway
 
-# Hoặc chạy thẳng
-cd api-gateway && node src/server.js
+# Trip/Search Service (gRPC, port 50051) — Giai đoạn 3
+npm run dev --workspace=trip-service
 ```
 
-Sau khi chạy thành công, truy cập **GraphQL Sandbox** tại:
+Sau khi chạy, truy cập **GraphQL Sandbox** tại:
 ```
 http://localhost:4000/graphql
 ```
 
 ---
 
-## Tóm tắt lệnh nhanh (Fresh start)
+## ⚠️ Khi cần Reset toàn bộ dữ liệu Docker
 
 ```bash
-# 1. Cài thư viện
-npm install
-
-# 2. Khởi động hạ tầng (tạo DB + bảng tự động)
-docker-compose up -d
-
-# 3. Khởi động API Gateway
-npm run dev --workspace=api-gateway
+docker-compose down -v   # Xóa volume (mất toàn bộ data)
+docker-compose up -d     # Tạo lại từ đầu
+# Sau đó chạy lại migrate + seed cho từng service
 ```
+
+---
+
+## 📋 Tóm tắt lệnh nhanh — Fresh Start (Giai đoạn 3)
+
+```bash
+# ── Từ thư mục Backend ──────────────────────────────
+npm install                           # 1. Cài thư viện
+
+docker-compose up -d                  # 2. Khởi động hạ tầng
+
+# ── Tạo bảng + Seed cho trip-service ────────────────
+cd services/trip-service
+npm run migrate                       # 3. Tạo bảng trip_db
+npm run seed                          # 4. Chèn dữ liệu mẫu
+cd ../..
+
+# ── Khởi động service ────────────────────────────────
+npm run dev --workspace=api-gateway   # 5. API Gateway
+npm run dev --workspace=trip-service  # 6. Trip Service (terminal khác)
+```
+
+---
+
+## 📌 Ghi chú phân loại Service
+
+| Loại | Service | Chạy ở đâu | Cần migrate/seed? |
+|---|---|---|---|
+| **Đồng bộ (gRPC)** | api-gateway, trip-service | Local (npm run dev) | trip-service: ✅ |
+| **Bất đồng bộ (Worker)** | ticket-worker, notification-worker, analytics-consumer | Docker (Giai đoạn sau) | ❌ |
+| **Hạ tầng** | Postgres, Redis, RabbitMQ, Kafka | Docker | ❌ (tự động) |

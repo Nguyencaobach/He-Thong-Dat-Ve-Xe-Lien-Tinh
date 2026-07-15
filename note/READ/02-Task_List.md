@@ -23,15 +23,15 @@ Dưới đây là danh sách toàn bộ các task (công việc) đã được c
 - [x] Khởi tạo các gRPC Clients để gọi xuống các service bên dưới (`grpcClients.js`).
 
 ## Giai đoạn 3: Module 1 - Trip/Search Service (Tìm kiếm & Tuyến xe)
-- [ ] Khởi tạo kết nối Knex (Postgres) và Redis trong `trip-service`.
-- [ ] Viết Knex Migrations để tạo bảng `Routes` (Tuyến) và `Trips` (Chuyến).
-- [ ] Viết File Seed để chèn dữ liệu mẫu (Sài Gòn - Đà Lạt, v.v...).
-- [ ] Cài đặt gRPC Server lắng nghe Gateway.
-- [ ] Viết logic `routeService.js`: Autocomplete tìm kiếm điểm đi, điểm đến.
-- [ ] Viết logic `tripService.js`: Tìm chuyến xe theo Ngày và Tuyến.
-- [ ] Thêm logic Cache vào Redis (`tripCache.js`) cho kết quả tìm chuyến.
-- [ ] **Outbox Pattern:** Lưu log tìm kiếm vào bảng `outbox_events`.
-- [ ] **Outbox Pattern:** Viết cronjob `outboxWorker.js` đọc bảng để ném event `search-events` lên Kafka.
+- [x] Khởi tạo kết nối Knex (Postgres) và Redis trong `trip-service`.
+- [x] Viết Knex Migrations để tạo bảng `Routes` (Tuyến) và `Trips` (Chuyến).
+- [x] Viết File Seed để chèn dữ liệu mẫu (Sài Gòn - Đà Lạt, v.v...).
+- [x] Cài đặt gRPC Server lắng nghe Gateway.
+- [x] Viết logic `routeService.js`: Autocomplete tìm kiếm điểm đi, điểm đến.
+- [x] Viết logic `tripService.js`: Tìm chuyến xe theo Ngày và Tuyến.
+- [x] Thêm logic Cache vào Redis (`tripCache.js`) cho kết quả tìm chuyến.
+- [x] **Outbox Pattern:** Lưu log tìm kiếm vào bảng `outbox_events`.
+- [x] **Outbox Pattern:** Viết cronjob `outboxWorker.js` đọc bảng để ném event `search-events` lên Kafka.
 
 ## Giai đoạn 4: Module 2 - Seat Inventory Service (Kho ghế & Realtime)
 - [ ] Khởi tạo kết nối Redis trong `seat-service` (Service này không xài Postgres).
