@@ -1,0 +1,20 @@
+{
+  "name": "chatbot-service",
+  "version": "1.0.0",
+  "description": "AI chatbot service with function calling and RAG for policy documents",
+  "main": "src/server.js",
+  "private": true,
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.10.0",
+    "@grpc/proto-loader": "^0.7.10",
+    "dotenv": "^16.4.5",
+    "common-utils": "*"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

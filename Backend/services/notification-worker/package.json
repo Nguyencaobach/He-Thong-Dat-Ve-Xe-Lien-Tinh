@@ -1,0 +1,20 @@
+{
+  "name": "notification-worker",
+  "version": "1.0.0",
+  "description": "Background worker: listens for ticket.issued and sends simulated emails",
+  "main": "src/server.js",
+  "private": true,
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "amqplib": "^0.10.3",
+    "dotenv": "^16.4.5",
+    "nodemailer": "^6.9.13",
+    "common-utils": "*"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

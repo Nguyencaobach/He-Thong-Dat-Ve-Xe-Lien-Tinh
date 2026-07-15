@@ -9,7 +9,11 @@
     "packages/*"
   ],
   "scripts": {
-    "start:all": "echo 'Sẽ bổ sung lệnh chạy đồng loạt tất cả các service sau'"
+    "start:all": "echo 'Sẽ bổ sung lệnh chạy đồng loạt tất cả các service sau'",
+    "dev:gateway": "npm run dev --workspace=api-gateway",
+    "dev:trip": "npm run dev --workspace=trip-service",
+    "dev:seat": "npm run dev --workspace=seat-service",
+    "dev:booking": "npm run dev --workspace=booking-service"
   },
   "author": "",
   "license": "ISC"

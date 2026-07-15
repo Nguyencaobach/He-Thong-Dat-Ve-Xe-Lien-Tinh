@@ -63,6 +63,21 @@ bus-booking-microservices/
 - `notification-worker/`: Tương tự như trên, hễ có vé mới là nó tự động lấy thông tin gửi email mô phỏng cho khách hàng mà không làm chậm trải nghiệm chờ đợi của người mua vé trên web.
 - `analytics-consumer/`: Chuyên nghe ngóng luồng sự kiện từ Kafka (số lượt tìm kiếm, luồng click, doanh thu). Nó lôi dữ liệu này về, nhào nặn lại để phục vụ biểu đồ thống kê cho màn hình Admin.
 
+> **💡 Tại sao Worker/Consumer không có URL trong file `.env` của API Gateway?**
+>
+> Vì `api-gateway` **không bao giờ chủ động gọi** vào các Worker này. Thay vào đó, luồng hoạt động như sau:
+>
+> ```
+> Khách thanh toán xong
+>         ↓
+> booking-service ném message "booking.paid" vào RabbitMQ → Trả kết quả cho khách ngay ✅
+>         ↓ (song song, ngầm phía sau — không chờ)
+> ticket-worker        tự thức dậy → Sinh vé PDF
+> notification-worker  tự thức dậy → Gửi email
+> ```
+>
+> Nhờ cơ chế **bất đồng bộ** này, khách hàng nhận phản hồi "Đặt vé thành công" gần như tức thì mà không phải chờ hệ thống sinh vé hay gửi email mới xong. Worker tự kích hoạt khi có tin nhắn trong queue — không cần ai gọi, không cần URL, không cần địa chỉ gRPC.
+
 **Nhóm C: AI & Tích hợp**
 - `chatbot-service/`: Nuôi mô hình AI (AI SDK). Khi khách hỏi "Chính sách hủy vé thế nào", nó sẽ lục tìm tài liệu nội bộ trả lời. Khi khách hỏi "Có vé đi Đà Lạt tối nay không?", nó sẽ tự động dùng tính năng Function Calling để chọc vào `trip-service` tìm vé cho khách.
 - `mcp-server/`: Đóng gói các hàm tìm vé, tra cứu đơn hàng... thành các "Tools" chuẩn để các con AI bên ngoài (như Claude Desktop) có thể hiểu và xài được hệ thống của bạn.

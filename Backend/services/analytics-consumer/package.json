@@ -1,0 +1,21 @@
+{
+  "name": "analytics-consumer",
+  "version": "1.0.0",
+  "description": "Kafka consumer: aggregates search/booking/payment events for reporting",
+  "main": "src/server.js",
+  "private": true,
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "kafkajs": "^2.2.4",
+    "dotenv": "^16.4.5",
+    "knex": "^3.1.0",
+    "pg": "^8.11.3",
+    "common-utils": "*"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

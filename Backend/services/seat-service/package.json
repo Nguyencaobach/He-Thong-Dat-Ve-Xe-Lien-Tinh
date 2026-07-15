@@ -1,0 +1,22 @@
+{
+  "name": "seat-service",
+  "version": "1.0.0",
+  "description": "Seat inventory service - single source of truth for seat state",
+  "main": "src/server.js",
+  "private": true,
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.10.0",
+    "@grpc/proto-loader": "^0.7.10",
+    "dotenv": "^16.4.5",
+    "ioredis": "^5.3.2",
+    "amqplib": "^0.10.3",
+    "common-utils": "*"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

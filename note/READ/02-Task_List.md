@@ -13,14 +13,14 @@ Dưới đây là danh sách toàn bộ các task (công việc) đã được c
 - [x] Cấu hình và chạy thử các script SQL tạo Database trong `infrastructure/init-db/`.
 
 ## Giai đoạn 2: API Gateway & Authentication (Lễ tân kiêm Bảo vệ)
-- [ ] Khởi tạo dự án Apollo Server (GraphQL) trong `api-gateway`.
-- [ ] Viết `db.js` để kết nối vào Database `users` của Gateway.
-- [ ] Tạo bảng `Users` (id, email, password, role).
-- [ ] Viết logic Đăng ký tài khoản (`authService.js`).
-- [ ] Viết logic Đăng nhập, kiểm tra mật khẩu và cấp phát **JWT Token**.
-- [ ] Viết Middleware để giải mã JWT, bóc tách `userId` và `role` gắn vào GraphQL Context.
-- [ ] Định nghĩa GraphQL `TypeDefs` cho toàn bộ hệ thống (dựa theo các file proto).
-- [ ] Khởi tạo các gRPC Clients để gọi xuống các service bên dưới (`grpcClients.js`).
+- [x] Khởi tạo dự án Apollo Server (GraphQL) trong `api-gateway`.
+- [x] Viết `db.js` để kết nối vào Database `users` của Gateway.
+- [x] Tạo bảng `Users` (id, email, password, role).
+- [x] Viết logic Đăng ký tài khoản (`authService.js`).
+- [x] Viết logic Đăng nhập, kiểm tra mật khẩu và cấp phát **JWT Token**.
+- [x] Viết Middleware để giải mã JWT, bóc tách `userId` và `role` gắn vào GraphQL Context.
+- [x] Định nghĩa GraphQL `TypeDefs` cho toàn bộ hệ thống (dựa theo các file proto).
+- [x] Khởi tạo các gRPC Clients để gọi xuống các service bên dưới (`grpcClients.js`).
 
 ## Giai đoạn 3: Module 1 - Trip/Search Service (Tìm kiếm & Tuyến xe)
 - [ ] Khởi tạo kết nối Knex (Postgres) và Redis trong `trip-service`.

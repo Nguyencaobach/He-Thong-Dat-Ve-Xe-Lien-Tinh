@@ -8,11 +8,11 @@ services:
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # Mount thư mục init-db vào trong container để nó tự chạy các script khởi tạo DB
       - ./infrastructure/init-db:/docker-entrypoint-initdb.d
 
   redis:
