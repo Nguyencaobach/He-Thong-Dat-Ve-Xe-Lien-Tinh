@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package analytics;
+
+service AnalyticsService {
+  rpc GetDashboardStats (GetStatsRequest) returns (GetStatsResponse);
+}
+
+message GetStatsRequest {
+  string date = 1; // optional date "YYYY-MM-DD"
+}
+
+message GetStatsResponse {
+  int32 totalBookings = 1;
+  double totalRevenue = 2;
+  int32 totalSearchCount = 3;
+}

@@ -1,107 +1,49 @@
 # Hướng dẫn khởi chạy dự án (Dành cho người mới clone Git về)
 
-Vì dự án được thiết kế chuẩn **Monorepo** và tự động hóa bằng **Docker**, bất kỳ ai (hoặc thầy cô) tải source code về chỉ cần làm đúng các bước sau là hệ thống tự động dựng lên:
+Vì dự án được thiết kế chuẩn **Monorepo** và tự động hóa bằng **Docker**, bạn chỉ cần làm đúng các lệnh sau (chạy tại thư mục `Backend`):
 
 ---
 
-## Bước 1: Cài đặt toàn bộ thư viện (Dependencies)
-
-Mở Terminal tại thư mục **`Backend`** và gõ:
+## 🚀 Tóm tắt lệnh nhanh — Fresh Start
 
 ```bash
+# 1. Cài đặt toàn bộ thư viện cho tất cả service
 npm install
-```
 
-*(Giải thích: Nhờ cơ chế NPM Workspaces, lệnh này tự động quét qua tất cả service và các gói dùng chung (`common-utils`, `event-schemas`) để tải mọi thư viện cần thiết — không cần chui vào từng thư mục chạy riêng.)*
-
----
-
-## Bước 2: Khởi động Hạ tầng & Tự tạo Cơ sở dữ liệu
-
-```bash
+# 2. Khởi động Hạ tầng (Postgres, Redis, RabbitMQ, Kafka)
 docker-compose up -d
-```
 
-Docker sẽ khởi động 5 container và Postgres tự động chạy scripts trong `infrastructure/init-db/`:
-- Tạo sẵn 6 Database rỗng (`trip_db`, `booking_db`, `admin_db`, `analytics_db`, `payment_db`, `users_db`)
-- Tạo bảng `users` trong `users_db` (từ `06_init_gateway_db.sql`)
+# 3. Tạo bảng (Migrate) và chèn dữ liệu mẫu (Seed) cho các Service dùng Postgres
+cd services/trip-service && npm run migrate && npm run seed && cd ../..
+cd services/booking-service && npm run migrate && cd ../..
+cd services/payment-service && npm run migrate && cd ../..
+cd services/admin-service && npm run migrate && npm run seed && cd ../..
+cd services/analytics-service && npm run migrate && cd ../..
+
+# 4. Khởi động TẤT CẢ service (gồm cả workers, admin, AI) bằng 1 lệnh duy nhất
+npm run kill                          # Dọn port cũ (nếu cần)
+npm run dev                           # Bật đồng loạt tất cả service
+```
 
 ---
 
-## Bước 3: Kiểm tra Docker đã chạy đủ chưa
+## 📌 Các Port đang sử dụng (Khi chạy `npm run dev`)
 
-```bash
-docker ps
-```
+| Màu | Service | Port | Ghi chú |
+|---|---|---|---|
+| Xanh dương | `api-gateway` (HTTP + WS) | 4000 | Phân quyền ADMIN/STAFF |
+| Xanh lá | `trip-service` (gRPC) | 50051 | Cần migrate + seed |
+| Vàng | `seat-service` (gRPC) | 50052 | Dùng Redis, ko cần DB |
+| Tím | `booking-service` (gRPC) | 50053 | Cần migrate |
+| Xanh ngọc | `payment-service` (gRPC) | 50054 | Cần migrate |
+| Đỏ | `ticket-worker` (Worker) | — | Chạy ngầm |
+| Trắng | `notification-worker` (Worker) | — | Chạy ngầm |
+| Xám | `admin-service` (gRPC) | 50055 | Cần migrate + seed template |
+| Đen | `analytics-service` (gRPC/Kafka) | 50056 | Cần migrate |
+| Xanh sáng | `chatbot-service` (HTTP/AI) | 4001 | Cần API Key Gemini ở `.env` |
+| Lục sáng | `mcp-server` (MCP) | stdio | Cho Cursor / Claude |
 
-| Container | Image | Port |
-|---|---|---|
-| `bus_postgres` | postgres:15-alpine | 5432 |
-| `bus_redis` | redis:7-alpine | 6379 |
-| `bus_rabbitmq` | rabbitmq:3-management | 5672, 15672 |
-| `bus_zookeeper` | cp-zookeeper:7.4.0 | 2181 |
-| `bus_kafka` | cp-kafka:7.4.0 | 9092 |
-
----
-
-## Bước 4: Chạy Migration & Seed cho các Service (Knex)
-
-Các service dùng Knex cần tạo bảng và chèn dữ liệu mẫu thủ công.
-> ⚠️ Bắt buộc theo thứ tự: **migrate → seed**
-
-### `trip-service` (Giai đoạn 3)
-```bash
-cd services/trip-service
-npm run migrate   # Tạo bảng: routes, trips, outbox_events
-npm run seed      # Chèn 6 tuyến mẫu + ~100 chuyến 7 ngày tới
-cd ../..
-```
-
-### `booking-service` (Giai đoạn 5)
-```bash
-cd services/booking-service
-npm run migrate   # Tạo bảng: bookings, passengers, outbox_events
-cd ../..
-```
-
-### `payment-service` (Giai đoạn 5)
-```bash
-cd services/payment-service
-npm run migrate   # Tạo bảng: transactions
-cd ../..
-```
-
-*(seat-service không cần migrate/seed — dùng Redis, không dùng Postgres)*
-
----
-
-## Bước 5: Khởi động các Service (đồng bộ — chạy local)
-
-Các service giao tiếp gRPC cần chạy local:
-
-```bash
-# Chạy TẤT CẢ service bằng 1 lệnh duy nhất (từ thư mục Backend)
-npm run kill
-npm run dev
-```
-
-Lệnh trên sử dụng `concurrently` để bật đồng loạt tất cả service trong cùng một terminal, mỗi service được tô màu riêng để phân biệt:
-
-| Màu | Service | Port |
-|---|---|---|
-| Xanh dương | `api-gateway` (HTTP + WebSocket) | 4000 |
-| Xanh lá | `trip-service` (gRPC) | 50051 |
-| Vàng | `seat-service` (gRPC) | 50052 |
-| Tím | `booking-service` (gRPC) | 50053 |
-| Xanh ngọc | `payment-service` (gRPC) | 50054 |
-| Đỏ | `ticket-worker` (Worker) | — không có port |
-| Trắng | `notification-worker` (Worker) | — không có port |
-| Xám | `admin-service` (gRPC) | 50055 |
-
-Sau khi chạy, truy cập **GraphQL Sandbox** tại:
-```
-http://localhost:4000/graphql
-```
+> **GraphQL Sandbox:** Truy cập `http://localhost:4000/graphql` sau khi chạy.
 
 ---
 
@@ -110,42 +52,5 @@ http://localhost:4000/graphql
 ```bash
 docker-compose down -v   # Xóa volume (mất toàn bộ data)
 docker-compose up -d     # Tạo lại từ đầu
-# Sau đó chạy lại migrate + seed cho từng service
+# Nhớ chạy lại bước 3 (Migrate + Seed) ở trên!
 ```
-
----
-
-## 📋 Tóm tắt lệnh nhanh — Fresh Start (Giai đoạn 7)
-
-```bash
-# ── Từ thư mục Backend ──────────────────────────────
-npm install                           # 1. Cài thư viện (tất cả service)
-
-docker-compose up -d                  # 2. Khởi động hạ tầng
-
-# ── Tạo bảng cho các service dùng Postgres ──────────
-cd services/trip-service && npm run migrate && npm run seed && cd ../..
-cd services/booking-service && npm run migrate && cd ../..
-cd services/payment-service && npm run migrate && cd ../..
-cd services/admin-service && npm run migrate && npm run seed && cd ../..  # Tạo bảng + chèn seat_layout_templates
-
-# ── Khởi động tất cả (gồm cả workers + admin) ──────────
-npm run kill                          # Dọn port cũ (nếu cần)
-npm run dev                           # Bật đồng loạt tất cả service
-```
-
-> ⚠️ **Lưu ý Giai đoạn 7:** `admin-service` cần **migrate + seed** để có sẵn template sơ đồ ghế. Phân quyền ADMIN/STAFF được kiểm tra tại `api-gateway` GraphQL resolver.
-
----
-
-## 📌 Ghi chú phân loại Service
-
-| Loại | Service | Chạy ở đâu | Cần migrate/seed? |
-|---|---|---|---|
-| **Đồng bộ (gRPC)** | api-gateway, trip-service | Local (npm run dev) | trip-service: ✅ |
-| **Đồng bộ (gRPC) — G4** | seat-service | Local (npm run dev) | ❌ (dùng Redis) |
-| **Đồng bộ (gRPC) — G5** | booking-service, payment-service | Local (npm run dev) | ✅ (migrate) |
-| **Worker nền — G6** | ticket-worker, notification-worker | Local (npm run dev) | ❌ (không có DB) |
-| **Admin — G7** | admin-service | Local (npm run dev) | ✅ (migrate + seed) |
-| **Worker phân tích — G8** | analytics-consumer | Local (Giai đoạn sau) | ❌ |
-| **Hạ tầng** | Postgres, Redis, RabbitMQ, Kafka | Docker | ❌ (tự động) |

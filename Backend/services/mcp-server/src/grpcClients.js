@@ -1,10 +1,3 @@
-/**
- * grpcClients.js - gRPC clients của admin-service
- *
- * Admin-service cần gọi:
- * - booking-service (GetBooking, CancelBooking) → port 50053
- * - seat-service (BlockSeat, UnblockSeat)       → port 50052
- */
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const path = require('path');
@@ -38,16 +31,13 @@ function promisifyClient(client) {
   return proxy;
 }
 
-const BookingService   = loadProto('booking.proto',   'booking',   'BookingService');
-const SeatService      = loadProto('seat.proto',      'seat',      'SeatService');
 const AnalyticsService = loadProto('analytics.proto', 'analytics', 'AnalyticsService');
+const TripService      = loadProto('trip.proto',      'trip',      'TripService');
 
-const BOOKING_URL   = process.env.BOOKING_SERVICE_URL   || 'localhost:50053';
-const SEAT_URL      = process.env.SEAT_SERVICE_URL      || 'localhost:50052';
 const ANALYTICS_URL = process.env.ANALYTICS_SERVICE_URL || 'localhost:50056';
+const TRIP_URL      = process.env.TRIP_SERVICE_URL      || 'localhost:50051';
 
-const bookingClient   = promisifyClient(new BookingService(BOOKING_URL,     grpc.credentials.createInsecure()));
-const seatClient      = promisifyClient(new SeatService(SEAT_URL,           grpc.credentials.createInsecure()));
 const analyticsClient = promisifyClient(new AnalyticsService(ANALYTICS_URL, grpc.credentials.createInsecure()));
+const tripClient      = promisifyClient(new TripService(TRIP_URL,           grpc.credentials.createInsecure()));
 
-module.exports = { bookingClient, seatClient, analyticsClient };
+module.exports = { analyticsClient, tripClient };

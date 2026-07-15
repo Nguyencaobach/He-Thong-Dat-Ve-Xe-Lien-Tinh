@@ -1,16 +1,17 @@
 {
   "name": "mcp-server",
   "version": "1.0.0",
-  "description": "MCP Server exposing business tools and resources for external AI clients",
-  "main": "src/index.js",
-  "private": true,
+  "description": "Model Context Protocol Server for external AI Agents",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
   },
   "dependencies": {
-    "dotenv": "^16.4.5",
-    "common-utils": "*"
+    "@grpc/grpc-js": "^1.10.8",
+    "@grpc/proto-loader": "^0.7.13",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

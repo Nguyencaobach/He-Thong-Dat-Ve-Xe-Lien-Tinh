@@ -66,13 +66,27 @@ Dưới đây là danh sách toàn bộ các task (công việc) đã được c
 - [x] Viết logic `checkinService.js`: Staff quét mã QR/Mã vé để đổi trạng thái sang `CHECKED_IN`.
 
 ## Giai đoạn 8: Module 5 - Analytics, Chatbot & MCP
-- [ ] `analytics-consumer`: Lắng nghe topic Kafka (`search-events`, `booking-events`, `payment-events`).
-- [ ] Lưu dữ liệu phân tích từ Kafka vào Database Analytics.
-- [ ] Trả API báo cáo doanh thu, tỷ lệ chuyển đổi cho `admin-service` làm Dashboard.
-- [ ] `chatbot-service`: Tích hợp AI SDK (OpenAI/Anthropic).
-- [ ] Khai báo Function Calling: Cho phép Chatbot gọi gRPC tìm chuyến xe và tra cứu mã vé.
-- [ ] Ứng dụng RAG: Cấp tài liệu Chính sách hủy vé dạng text để Chatbot đọc và tư vấn chính xác.
-- [ ] `mcp-server`: Định nghĩa các Tools và Resources theo chuẩn MCP để xuất ra cho AI Agent bên ngoài.
+
+> **[IMPORTANT] NGUYÊN TẮC KIẾN TRÚC & BẢO MẬT (WebAI Architecture)**
+> - **Chỉ dùng Gemini (Google):** Sử dụng `@ai-sdk/google` thay cho OpenAI.
+> - **Client Thông minh:** AI tuyệt đối không chọc thẳng vào Database. Mọi Tool đều phải gọi qua gRPC/Gateway để kế thừa phân quyền hiện có.
+> - **Phân bạch RAG và Tool:** RAG dùng cho dữ liệu tĩnh (Chính sách hủy vé). Tool dùng cho dữ liệu động (Tìm chuyến, tra vé).
+> - **Chống Ảo giác (Hallucination):** Bắt buộc AI trả lời "Chưa đủ thông tin" nếu Tool/RAG không trả về dữ liệu.
+> - **Bảo vệ Hệ thống:** Cài đặt `express-rate-limit` chống spam cạn tiền, che giấu Stack Trace lỗi kỹ thuật.
+
+- [x] **Phần 1: Analytics (Kafka)**
+  - [x] `analytics-consumer`: Dùng `kafkajs` lắng nghe Kafka (`search-events`, `booking-events`, `payment-events`).
+  - [x] Lưu dữ liệu phân tích vào Database Analytics (Postgres riêng) qua Knex.
+  - [x] Viết API báo cáo doanh thu, tỷ lệ chuyển đổi cho `admin-service` làm Dashboard.
+- [x] **Phần 2: Chatbot Service (Vercel AI SDK & Gemini)**
+  - [x] Khởi tạo `chatbot-service`: Tích hợp Vercel AI SDK (`@ai-sdk/google`), dùng hàm `streamText` trả luồng hội thoại (API Backend thuần).
+  - [x] Thiết lập Rate Limit (`express-rate-limit`) chống spam cạn Quota API.
+  - [x] Ứng dụng RAG: Dùng `embedMany` (model `text-embedding-004`) vector hóa "Chính sách nhà xe". Dùng `cosineSimilarity` tìm ngữ cảnh đưa vào Prompt.
+  - [x] Áp dụng Tool Calling: Dùng thư viện `zod` định nghĩa input schema cho các tools `searchTrips`, `getBookingStatus`.
+  - [x] Viết logic cho Tools: Gọi gRPC sang `trip-service` và `booking-service`. Xử lý lỗi mượt mà, không trả ra lỗi hệ thống cho AI.
+- [x] **Phần 3: MCP Server (Model Context Protocol)**
+  - [x] `mcp-server`: Xây dựng server độc lập theo chuẩn MCP (`@modelcontextprotocol/sdk`).
+  - [x] Cấu hình Resources (`policy://cancellation`) và Tools (`search_trips`, `get_revenue_summary`) gọi ngầm qua gRPC an toàn để expose cho AI Agent bên ngoài.
 
 ## Giai đoạn 9: Kiểm thử Tối hậu & Đóng gói
 - [ ] Giả lập 2 người cùng gọi API giữ 1 ghế cùng lúc (Race condition test) - Đảm bảo chỉ 1 người được.

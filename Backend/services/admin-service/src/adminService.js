@@ -9,7 +9,7 @@
  * - Dashboard stats (thống kê từ admin_events + buses)
  */
 const adminRepository = require('./adminRepository');
-const { seatClient }  = require('./grpcClients');
+const { seatClient, analyticsClient }  = require('./grpcClients');
 require('dotenv').config();
 
 // ── Trạng thái chuyến hợp lệ để Admin chuyển
@@ -193,13 +193,19 @@ const adminService = {
     const [totalBuses] = await require('./db')('buses').count('id as count');
     const [totalEvents] = await require('./db')('admin_events').count('id as count');
 
-    // Thống kê booking phải lấy từ booking-service (qua gRPC)
-    // Ở đây trả về dữ liệu placeholder — sẽ tích hợp analytics-consumer ở Giai đoạn 8
+    // Gọi analytics-service để lấy doanh thu và booking (Giai đoạn 8)
+    let analyticsData = { totalBookings: 0, totalRevenue: 0, totalSearchCount: 0 };
+    try {
+      analyticsData = await analyticsClient.GetDashboardStats({ date: date || '' });
+    } catch (err) {
+      console.warn('[admin-service] Không thể gọi analytics-service, dùng dữ liệu mặc định:', err.message);
+    }
+
     return {
-      totalBookings: 0,      // Placeholder — Giai đoạn 8: lấy từ analytics-consumer
-      totalRevenue:  0,
-      activeUsers:   0,
-      totalTrips:    0,
+      totalBookings: analyticsData.totalBookings || 0,
+      totalRevenue:  analyticsData.totalRevenue || 0,
+      activeUsers:   analyticsData.totalSearchCount || 0, // Mượn trường này tạm thể hiện lượng search
+      totalTrips:    parseInt(totalEvents.count), // Placeholder
       totalBuses:    parseInt(totalBuses.count),
     };
   },
