@@ -94,6 +94,8 @@ Lệnh trên sử dụng `concurrently` để bật đồng loạt tất cả se
 | Vàng | `seat-service` (gRPC) | 50052 |
 | Tím | `booking-service` (gRPC) | 50053 |
 | Xanh ngọc | `payment-service` (gRPC) | 50054 |
+| Đỏ | `ticket-worker` (Worker) | — không có port |
+| Trắng | `notification-worker` (Worker) | — không có port |
 
 Sau khi chạy, truy cập **GraphQL Sandbox** tại:
 ```
@@ -112,7 +114,7 @@ docker-compose up -d     # Tạo lại từ đầu
 
 ---
 
-## 📋 Tóm tắt lệnh nhanh — Fresh Start (Giai đoạn 5)
+## 📋 Tóm tắt lệnh nhanh — Fresh Start (Giai đoạn 6)
 
 ```bash
 # ── Từ thư mục Backend ──────────────────────────────
@@ -125,12 +127,12 @@ cd services/trip-service && npm run migrate && npm run seed && cd ../..
 cd services/booking-service && npm run migrate && cd ../..
 cd services/payment-service && npm run migrate && cd ../..
 
-# ── Khởi động tất cả service ────────────────────────
+# ── Khởi động tất cả (gồm cả workers) ───────────────
 npm run kill                          # Dọn port cũ (nếu cần)
-npm run dev                           # Bật đồng loạt: gateway + trip + seat + booking + payment
+npm run dev                           # Bật đồng loạt: gateway + trip + seat + booking + payment + ticket-worker + notification-worker
 ```
 
-> ⚠️ **Lưu ý Giai đoạn 5:** `booking-service` (50053) và `payment-service` (50054) cần migrate trước khi chạy.
+> ⚠️ **Lưu ý Giai đoạn 6:** `ticket-worker` và `notification-worker` là **worker chạy nền**, không có HTTP/gRPC port, không cần migrate. Vé HTML sẽ được lưu tại `services/ticket-worker/generated-tickets/`.
 
 ---
 
@@ -141,5 +143,6 @@ npm run dev                           # Bật đồng loạt: gateway + trip + s
 | **Đồng bộ (gRPC)** | api-gateway, trip-service | Local (npm run dev) | trip-service: ✅ |
 | **Đồng bộ (gRPC) — G4** | seat-service | Local (npm run dev) | ❌ (dùng Redis) |
 | **Đồng bộ (gRPC) — G5** | booking-service, payment-service | Local (npm run dev) | ✅ (migrate) |
-| **Bất đồng bộ (Worker)** | ticket-worker, notification-worker, analytics-consumer | Docker (Giai đoạn sau) | ❌ |
+| **Worker nền — G6** | ticket-worker, notification-worker | Local (npm run dev) | ❌ (không có DB) |
+| **Worker phân tích — G8** | analytics-consumer | Local (Giai đoạn sau) | ❌ |
 | **Hạ tầng** | Postgres, Redis, RabbitMQ, Kafka | Docker | ❌ (tự động) |

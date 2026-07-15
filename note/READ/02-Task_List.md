@@ -43,20 +43,20 @@ Dưới đây là danh sách toàn bộ các task (công việc) đã được c
 - [x] Ở `api-gateway`, viết `seatEventsConsumer.js` lắng nghe Pub/Sub và đẩy dữ liệu về Frontend qua **GraphQL Subscriptions**.
 
 ## Giai đoạn 5: Module 3 - Booking & Payment (Đặt vé & Thanh toán)
-- [ ] `booking-service`: Viết Knex Migrations tạo bảng `Bookings` và `Passengers`.
-- [ ] Viết State Machine: Trạng thái đơn hàng `DRAFT` -> `PENDING_PAYMENT` -> `PAID` -> `CANCELLED`.
-- [ ] Viết logic tạo Booking mới: Gọi gRPC sang `seat-service` để giữ ghế, nếu thành công thì tạo đơn hàng `PENDING`.
-- [ ] Viết logic giả lập xử lý trong `payment-service` (Trả về thành công/thất bại).
-- [ ] Tích hợp Saga/Outbox: Khi thanh toán thành công, ném event lên RabbitMQ.
-- [ ] `booking-service` lắng nghe event thanh toán, đổi trạng thái đơn sang `PAID` và gọi gRPC chốt ghế vĩnh viễn.
-- [ ] Đẩy sự kiện `booking.paid` vào Outbox để chuẩn bị sinh vé (RabbitMQ) và đẩy thống kê lên Kafka.
+- [x] `booking-service`: Viết Knex Migrations tạo bảng `Bookings` và `Passengers`.
+- [x] Viết State Machine: Trạng thái đơn hàng `DRAFT` -> `PENDING_PAYMENT` -> `PAID` -> `CANCELLED`.
+- [x] Viết logic tạo Booking mới: Gọi gRPC sang `seat-service` để giữ ghế, nếu thành công thì tạo đơn hàng `PENDING`.
+- [x] Viết logic giả lập xử lý trong `payment-service` (Trả về thành công/thất bại).
+- [x] Tích hợp Saga/Outbox: Khi thanh toán thành công, ném event lên RabbitMQ.
+- [x] `booking-service` lắng nghe event thanh toán, đổi trạng thái đơn sang `PAID` và gọi gRPC chốt ghế vĩnh viễn.
+- [x] Đẩy sự kiện `booking.paid` vào Outbox để chuẩn bị sinh vé (RabbitMQ) và đẩy thống kê lên Kafka.
 
 ## Giai đoạn 6: Các Worker Chạy Nền (Sinh vé & Gửi Email)
-- [ ] `ticket-worker`: Kết nối RabbitMQ, lắng nghe hàng đợi `booking.paid`.
-- [ ] Viết logic sinh file vé PDF/HTML chứa mã QR mô phỏng (`ticketGenerator.js`).
-- [ ] Khi sinh vé xong, phát tiếp event `ticket.issued` lên RabbitMQ.
-- [ ] `notification-worker`: Lắng nghe hàng đợi `ticket.issued`.
-- [ ] Viết logic giả lập gửi Email cho khách hàng chứa file vé vừa tạo.
+- [x] `ticket-worker`: Kết nối RabbitMQ, lắng nghe hàng đợi `booking.paid`.
+- [x] Viết logic sinh file vé PDF/HTML chứa mã QR mô phỏng (`ticketGenerator.js`).
+- [x] Khi sinh vé xong, phát tiếp event `ticket.issued` lên RabbitMQ.
+- [x] `notification-worker`: Lắng nghe hàng đợi `ticket.issued`.
+- [x] Viết logic giả lập gửi Email cho khách hàng chứa file vé vừa tạo.
 
 ## Giai đoạn 7: Module 4 - Admin Service (Quản trị & Vận hành)
 - [ ] Viết Knex Migrations tạo bảng cấu hình Xe (`Bus`), Sơ đồ ghế template.
