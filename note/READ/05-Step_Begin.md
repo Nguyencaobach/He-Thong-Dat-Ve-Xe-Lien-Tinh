@@ -37,6 +37,7 @@ cd frontend
 
 # 2. Cài đặt toàn bộ thư viện (Next.js, Shadcn, Jose, GraphQL...)
 npm install
+npm install react-hook-form @hookform/resolvers # Các thư viện form cho Giai đoạn 2
 
 # 3. Khởi chạy Server Next.js ở chế độ phát triển
 npm run dev
