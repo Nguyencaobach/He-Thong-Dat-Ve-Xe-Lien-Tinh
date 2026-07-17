@@ -76,6 +76,9 @@ const typeDefs = gql`
     arrivalTime: String!
     price: Float!
     availableSeats: Int!
+    departureStation: String
+    arrivalStation: String
+    busType: String
   }
 
   # ─────────────────────────────────────────────
@@ -109,12 +112,31 @@ const typeDefs = gql`
     seatIds: [String!]!
     totalAmount: Float!
     status: BookingStatus!
+    passengers: [Passenger!]
+  }
+
+  type Passenger {
+    fullName: String!
+    phone: String!
+    email: String
+    idNumber: String
+    seatId: String!
+    seatNumber: String!
   }
 
   type BookingResult {
     success: Boolean!
     bookingId: ID
     message: String!
+  }
+
+  input PassengerInput {
+    fullName: String!
+    phone: String!
+    email: String
+    idNumber: String
+    seatId: String!
+    seatNumber: String!
   }
 
   type CancelResult {
@@ -233,12 +255,15 @@ const typeDefs = gql`
     login(email: String!, password: String!): AuthPayload!
 
     # SEAT - Module 2
-    "Giữ ghế tạm thời (TTL 5 phút) — atomic SETNX trên Redis"
+    # Trả về thành công hay không và có kèm token để tiếp tục thanh toán
     holdSeat(tripId: ID!, seatId: ID!): HoldSeatResult!
+
+    # Nhả ghế
+    releaseSeat(tripId: ID!, seatId: ID!): HoldSeatResult!
 
     # BOOKING - Module 3
     "Tạo đơn đặt vé mới (Saga orchestration bắt đầu từ đây)"
-    createBooking(tripId: ID!, seatIds: [ID!]!): BookingResult!
+    createBooking(tripId: ID!, seatIds: [ID!]!, passengers: [PassengerInput!]): BookingResult!
 
     "Hủy đơn đặt vé (theo chính sách)"
     cancelBooking(bookingId: ID!): CancelResult!

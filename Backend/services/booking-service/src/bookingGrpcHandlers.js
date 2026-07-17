@@ -19,7 +19,7 @@ function createBookingGrpcHandlers() {
      */
     async CreateBooking(call, callback) {
       try {
-        const { userId, tripId, seatIds } = call.request;
+        const { userId, tripId, seatIds, passengers } = call.request;
 
         if (!tripId || !seatIds || seatIds.length === 0) {
           return callback({
@@ -34,6 +34,7 @@ function createBookingGrpcHandlers() {
           userId:  userId || 'guest',
           tripId,
           seatIds,
+          passengers,
         });
 
         callback(null, {
@@ -69,6 +70,14 @@ function createBookingGrpcHandlers() {
           seatIds:     booking.seat_ids,
           totalAmount: parseFloat(booking.total_amount),
           status:      booking.status,
+          passengers:  booking.passengers ? booking.passengers.map(p => ({
+            fullName: p.full_name,
+            phone: p.phone,
+            email: p.email,
+            idNumber: p.id_number,
+            seatId: p.seat_id,
+            seatNumber: p.seat_number
+          })) : [],
         });
       } catch (error) {
         if (error.message.includes('Không tìm thấy')) {

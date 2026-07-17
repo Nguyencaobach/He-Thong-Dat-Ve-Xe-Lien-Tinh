@@ -11,10 +11,20 @@ service BookingService {
   rpc CancelBooking (CancelBookingRequest) returns (CancelBookingResponse);
 }
 
+message PassengerInput {
+  string fullName = 1;
+  string phone = 2;
+  string email = 3;
+  string idNumber = 4;
+  string seatId = 5;
+  string seatNumber = 6;
+}
+
 message CreateBookingRequest {
   string userId = 1;
   string tripId = 2;
   repeated string seatIds = 3;
+  repeated PassengerInput passengers = 4;
 }
 
 message CreateBookingResponse {
@@ -34,6 +44,7 @@ message BookingResponse {
   repeated string seatIds = 4;
   double totalAmount = 5;
   string status = 6; // PENDING, PAID, CANCELLED
+  repeated PassengerInput passengers = 7;
 }
 
 message CancelBookingRequest {

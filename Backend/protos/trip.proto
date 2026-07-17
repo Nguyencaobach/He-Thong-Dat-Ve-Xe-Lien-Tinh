@@ -28,4 +28,7 @@ message TripResponse {
   string arrivalTime = 4;
   double price = 5;
   int32 availableSeats = 6;
+  string departureStation = 7;
+  string arrivalStation = 8;
+  string busType = 9;
 }

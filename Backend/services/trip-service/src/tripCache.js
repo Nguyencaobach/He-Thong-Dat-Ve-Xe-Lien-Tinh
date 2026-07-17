@@ -52,6 +52,19 @@ const tripCache = {
   },
 
   /**
+   * Xóa cache khi số ghế thay đổi
+   */
+  async clearSearchResult(departure, destination, date) {
+    try {
+      const key = buildSearchKey(departure, destination, date);
+      await redis.del(key);
+      console.log(`[trip-cache] Xóa cache key=${key}`);
+    } catch (err) {
+      console.warn('[trip-cache] Lỗi xóa cache:', err.message);
+    }
+  },
+
+  /**
    * Lưu kết quả vào cache
    */
   async setSearchResult(departure, destination, date, trips) {

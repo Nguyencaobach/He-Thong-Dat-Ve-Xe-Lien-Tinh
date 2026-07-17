@@ -6,6 +6,7 @@ service SeatService {
   rpc GetSeatMap (SeatMapRequest) returns (SeatMapResponse);
   rpc HoldSeat (HoldSeatRequest) returns (HoldSeatResponse);
   rpc BookSeat (BookSeatRequest) returns (BookSeatResponse);
+  rpc ReleaseSeat (ReleaseSeatRequest) returns (ReleaseSeatResponse);
 }
 
 message SeatMapRequest {
@@ -40,6 +41,16 @@ message BookSeatRequest {
 }
 
 message BookSeatResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ReleaseSeatRequest {
+  string tripId = 1;
+  string seatId = 2;
+}
+
+message ReleaseSeatResponse {
   bool success = 1;
   string message = 2;
 }

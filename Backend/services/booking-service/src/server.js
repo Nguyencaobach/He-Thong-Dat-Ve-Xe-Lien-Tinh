@@ -85,11 +85,21 @@ async function start() {
     // gRPC Server
     const grpcServer = await startGrpcServer();
 
+    // Khởi động Expiry Cron: Quét và expire các đơn quá hạn mỗi 1 phút
+    const bookingService = require('./bookingService');
+    const expiryTimer = setInterval(() => {
+      bookingService.expireStaleBookings().catch(err => {
+        console.error('[booking-service] Cron expire lỗi:', err.message);
+      });
+    }, 60000);
+    console.log('[booking-service] ✓ Đã bật Expiry Cron (quét mỗi 1 phút)');
+
     console.log('[booking-service] ✓ Khởi động hoàn tất!');
 
     // Graceful shutdown
     const shutdown = async (signal) => {
       console.log(`[booking-service] Nhận ${signal}, đang dừng...`);
+      clearInterval(expiryTimer);
       outboxWorker.stop();
       grpcServer.tryShutdown(async (err) => {
         if (err) grpcServer.forceShutdown();

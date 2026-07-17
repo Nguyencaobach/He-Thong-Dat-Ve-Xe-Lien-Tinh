@@ -23,6 +23,8 @@ cd services/analytics-service && npm run migrate && cd ../..
 # 4. Khởi động TẤT CẢ service (gồm cả workers, admin, AI) bằng 1 lệnh duy nhất
 npm run kill                          # Dọn port cũ (nếu cần)
 npm run dev                           # Bật đồng loạt tất cả service
+taskkill /F /IM node.exe
+
 ```
 
 ---
@@ -38,6 +40,7 @@ cd frontend
 # 2. Cài đặt toàn bộ thư viện (Next.js, Shadcn, Jose, GraphQL...)
 npm install
 npm install react-hook-form @hookform/resolvers # Các thư viện form cho Giai đoạn 2
+npm install graphql-ws
 
 # 3. Khởi chạy Server Next.js ở chế độ phát triển
 npm run dev

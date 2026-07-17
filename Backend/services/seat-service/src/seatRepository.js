@@ -98,6 +98,22 @@ const seatRepository = {
       console.log(`[seat-repo] HOLD SUCCESS: ${holdKey} (TTL=${SEAT_HOLD_TTL}s, user=${userId})`);
       return { success: true, ttl: SEAT_HOLD_TTL };
     } else {
+      // Kiểm tra xem ghế có đang được giữ bởi CHÍNH user này không
+      const existingValueStr = await redis.get(holdKey);
+      if (existingValueStr) {
+        try {
+          const existingData = JSON.parse(existingValueStr);
+          if (existingData.userId === userId) {
+            // Gia hạn thời gian giữ ghế cho user hiện tại
+            await redis.set(holdKey, value, 'EX', SEAT_HOLD_TTL);
+            console.log(`[seat-repo] HOLD REFRESH SUCCESS: ${holdKey} (user=${userId})`);
+            return { success: true, ttl: SEAT_HOLD_TTL };
+          }
+        } catch (e) {
+          // ignore parse error
+        }
+      }
+
       // Ghế đang bị HELD bởi người khác
       console.log(`[seat-repo] HOLD FAILED (already held): ${holdKey}`);
       return { success: false, reason: 'HELD', message: 'Ghế đang được người khác giữ. Vui lòng chọn ghế khác.' };
@@ -346,6 +362,39 @@ const seatRepository = {
     const seatmapKey = keys.seatmap(tripId);
     await redis.set(seatmapKey, JSON.stringify(seats));
     console.log(`[seat-repo] Saved seat map for trip ${tripId}: ${seats.length} seats`);
+  },
+
+  /**
+   * Đếm chính xác số ghế đang bị chiếm (HELD + BOOKED + BLOCKED)
+   * @returns {number}
+   */
+  async getOccupiedSeatCount(tripId) {
+    const seatmapKey = keys.seatmap(tripId);
+    const raw = await redis.get(seatmapKey);
+    const seats = raw ? JSON.parse(raw) : generateDefaultSeatMap(tripId);
+
+    // Không tự động lưu seatmap ở đây nếu chưa có để tránh lỗi sai số lượng ghế mặc định (luôn là 34)
+
+    // Dùng pipeline để check trạng thái tất cả ghế trong 1 round-trip
+    const pipeline = redis.pipeline();
+    for (const seat of seats) {
+      pipeline.exists(keys.hold(tripId, seat.seatId));
+      pipeline.exists(keys.booked(tripId, seat.seatId));
+      pipeline.exists(keys.blocked(tripId, seat.seatId));
+    }
+    const results = await pipeline.exec();
+
+    let occupiedCount = 0;
+    for (let idx = 0; idx < seats.length; idx++) {
+      const [, isHeld]    = results[idx * 3];
+      const [, isBooked]  = results[idx * 3 + 1];
+      const [, isBlocked] = results[idx * 3 + 2];
+      if (isHeld || isBooked || isBlocked) {
+        occupiedCount++;
+      }
+    }
+
+    return occupiedCount;
   },
 };
 

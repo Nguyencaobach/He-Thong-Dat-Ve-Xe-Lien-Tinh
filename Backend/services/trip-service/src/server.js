@@ -60,6 +60,7 @@ async function startGrpcServer() {
 async function start() {
   try {
     const grpcServer = await startGrpcServer();
+    require('./redisSubscriber'); // Khởi động subscriber để đồng bộ ghế
 
     // Graceful shutdown
     const shutdown = async (signal) => {

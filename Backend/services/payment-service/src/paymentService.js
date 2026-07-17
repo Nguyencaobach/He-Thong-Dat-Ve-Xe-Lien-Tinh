@@ -9,7 +9,7 @@ const rabbitmqPublisher = require('./rabbitmqPublisher');
 const paymentRepository = require('./paymentRepository');
 require('dotenv').config();
 
-const SUCCESS_RATE = parseFloat(process.env.PAYMENT_SUCCESS_RATE) || 0.9;
+const SUCCESS_RATE = parseFloat(process.env.PAYMENT_SUCCESS_RATE) || 1.0;
 
 const paymentService = {
 

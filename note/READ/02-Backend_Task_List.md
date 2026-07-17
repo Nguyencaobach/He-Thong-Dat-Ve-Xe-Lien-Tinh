@@ -41,6 +41,7 @@ Dưới đây là danh sách toàn bộ các task (công việc) đã được c
 - [x] Viết logic chốt ghế vĩnh viễn (chuyển sang trạng thái BOOKED khi đã thanh toán).
 - [x] Phát sự kiện thay đổi trạng thái ghế lên kênh **Redis Pub/Sub** (`redisPubSub.js`).
 - [x] Ở `api-gateway`, viết `seatEventsConsumer.js` lắng nghe Pub/Sub và đẩy dữ liệu về Frontend qua **GraphQL Subscriptions**.
+- [ ] **Bổ sung tích hợp:** Kết nối Frontend `seat-map.tsx` với API `getSeatMap` và WebSockets (`graphql-ws`) thực tế của Backend để thay thế toàn bộ dữ liệu ghế mock/giả lập ban đầu.
 
 ## Giai đoạn 5: Module 3 - Booking & Payment (Đặt vé & Thanh toán)
 - [x] `booking-service`: Viết Knex Migrations tạo bảng `Bookings` và `Passengers`.
@@ -50,7 +51,16 @@ Dưới đây là danh sách toàn bộ các task (công việc) đã được c
 - [x] Tích hợp Saga/Outbox: Khi thanh toán thành công, ném event lên RabbitMQ.
 - [x] `booking-service` lắng nghe event thanh toán, đổi trạng thái đơn sang `PAID` và gọi gRPC chốt ghế vĩnh viễn.
 - [x] Đẩy sự kiện `booking.paid` vào Outbox để chuẩn bị sinh vé (RabbitMQ) và đẩy thống kê lên Kafka.
+- [x] **Bổ sung API:** Thêm thông tin `passengers` vào `booking.proto`, `schema.js` và `bookingGrpcHandlers.js` để Frontend truyền họ tên/SĐT khách hàng khi tạo Booking.
+- [x] Cập nhật Backend (Lỗi đồng bộ ghế)
+  - [x] Bổ sung mảng passengers vào BookingResponse trong booking.proto và bookingGrpcHandlers.js.
+  - [x] Sửa triệt để lỗi đếm sai ghế (Còn 33/32 chỗ trống ảo): Thay vì trip-service cộng trừ ghế mù quáng gây sai số, đã viết lại hàm getOccupiedSeatCount() trong seat-service quét chính xác từng ghế bị chiếm từ Redis, rồi ném số đó sang trip-service tính ra số ghế trống thực tế (total_seats - occupied_seats).
+  - [x] Bật Cron Job định kỳ 1 phút dọn rác các booking chưa thanh toán và hết hạn trong booking-service/src/server.js.
+- [x] Cập nhật API Gateway & GraphQL
+  - [x] Sửa schema.js để hỗ trợ passengers (tạo type Passenger).
+  - [x] Bổ sung lấy passengers trong GET_BOOKING_QUERY.
 
+  
 ## Giai đoạn 6: Các Worker Chạy Nền (Sinh vé & Gửi Email)
 - [x] `ticket-worker`: Kết nối RabbitMQ, lắng nghe hàng đợi `booking.paid`.
 - [x] Viết logic sinh file vé PDF/HTML chứa mã QR mô phỏng (`ticketGenerator.js`).

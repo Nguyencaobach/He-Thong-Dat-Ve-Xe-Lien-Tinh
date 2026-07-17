@@ -105,15 +105,20 @@ const resolvers = {
       return await clients.seat.HoldSeat({ tripId, seatId, userId });
     },
 
+    releaseSeat: async (_, { tripId, seatId }, context) => {
+      const userId = context.user?.userId ?? 'guest';
+      return await clients.seat.ReleaseSeat({ tripId, seatId, userId });
+    },
+
     // ── BOOKING (Module 3) ──
-    createBooking: async (_, { tripId, seatIds }, context) => {
+    createBooking: async (_, { tripId, seatIds, passengers }, context) => {
       const userId = context.user?.userId ?? '';
-      return await clients.booking.CreateBooking({ userId, tripId, seatIds });
+      return await clients.booking.CreateBooking({ userId, tripId, seatIds, passengers });
     },
 
     cancelBooking: async (_, { bookingId }, context) => {
-      requireAuth(context);
-      return await clients.booking.CancelBooking({ bookingId, userId: context.user.userId });
+      const userId = context.user?.userId ?? 'guest';
+      return await clients.booking.CancelBooking({ bookingId, userId });
     },
 
     // ── PAYMENT (Module 3) ──

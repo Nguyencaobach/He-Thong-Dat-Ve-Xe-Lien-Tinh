@@ -25,6 +25,7 @@
  */
 
 const { redis } = require('./redisClient');
+const seatRepository = require('./seatRepository');
 require('dotenv').config();
 
 // Tên channel Redis Pub/Sub — phải khớp với seatEventsConsumer.js ở api-gateway
@@ -47,11 +48,20 @@ const redisPubSub = {
    * @param {string} status    - Trạng thái mới: AVAILABLE | HELD | BOOKED | BLOCKED
    */
   async publishSeatStatusChange(tripId, seatId, seatNumber, status) {
+    // Đếm chính xác số ghế đang bị chiếm SAU KHI thay đổi trạng thái
+    let occupiedSeats = null;
+    try {
+      occupiedSeats = await seatRepository.getOccupiedSeatCount(tripId);
+    } catch (err) {
+      console.warn('[seat-pubsub] Không thể đếm ghế bị chiếm:', err.message);
+    }
+
     const event = {
       tripId,
       seatId,
       seatNumber,
       status,
+      occupiedSeats, // Số ghế đang chiếm thực tế để trip-service tính lại available = total - occupied
       updatedAt: new Date().toISOString(),
     };
 
@@ -61,7 +71,7 @@ const redisPubSub = {
 
       console.log(
         `[seat-pubsub] PUBLISH → channel="${SEAT_EVENTS_CHANNEL}" | ` +
-        `seat=${seatNumber} | status=${status} | receivers=${receiverCount}`
+        `seat=${seatNumber} | status=${status} | occupied=${occupiedSeats} | receivers=${receiverCount}`
       );
     } catch (err) {
       // Lỗi publish KHÔNG được làm gián đoạn luồng đặt vé chính

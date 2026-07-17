@@ -70,6 +70,17 @@ const bookingService = {
       }
     }
 
+    // Fetch real price from trip-service
+    let seatPrice = 200000;
+    try {
+      const tripDetails = await clients.trip.GetTripDetails({ tripId });
+      if (tripDetails && tripDetails.price) {
+        seatPrice = tripDetails.price;
+      }
+    } catch (err) {
+      console.warn(`[booking-service] Không thể lấy giá từ trip-service cho trip ${tripId}, dùng giá mặc định: ${err.message}`);
+    }
+
     // Bước 2: Tạo booking trong DB với trạng thái PENDING_PAYMENT
     const expiresAt = new Date(Date.now() + BOOKING_PENDING_TTL * 1000);
 
@@ -77,7 +88,7 @@ const bookingService = {
       userId: effectiveUserId,
       tripId,
       seatIds,
-      totalAmount: totalAmount || seatIds.length * 200000, // Giá mặc định demo
+      totalAmount: seatIds.length * seatPrice,
       passengers:  passengers || [],
       expiresAt,
     });
@@ -171,11 +182,9 @@ const bookingService = {
     const booking = await bookingRepository.findById(bookingId);
     if (!booking || booking.status !== 'PENDING_PAYMENT') return;
 
-    // Nhả tất cả ghế
-    await _releaseSeats(booking.trip_id, booking.seat_ids, booking.user_id);
-
-    await bookingRepository.transition(bookingId, 'EXPIRED');
-    console.log(`[booking-service] Booking ${bookingId} → EXPIRED (payment failed)`);
+    // Không chuyển sang EXPIRED ngay lập tức, cho phép khách hàng thanh toán lại
+    // cho đến khi worker quét TTL tự động hết hạn.
+    console.log(`[booking-service] Giao dịch thanh toán thất bại cho booking ${bookingId} (vẫn giữ PENDING_PAYMENT)`);
   },
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -230,6 +239,10 @@ const bookingService = {
     const expired = await bookingRepository.findExpiredPendingBookings();
     for (const booking of expired) {
       try {
+        // Luôn chủ động gọi ReleaseSeat để nhả ghế và force update pubsub 
+        // đề phòng trường hợp Redis TTL bị miss khi server đang sập
+        await _releaseSeats(booking.trip_id, booking.seat_ids, booking.user_id);
+        
         await bookingRepository.expireBooking(booking.id);
         console.log(`[booking-service] Booking ${booking.id} → EXPIRED (timeout)`);
       } catch (err) {

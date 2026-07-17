@@ -50,16 +50,20 @@ function promisifyClient(client) {
 // ── Khởi tạo clients ─────────────────────────────────────────────────────────
 const SeatService    = loadProto('seat.proto',    'seat',    'SeatService');
 const PaymentService = loadProto('payment.proto', 'payment', 'PaymentService');
+const TripService    = loadProto('trip.proto',    'trip',    'TripService');
 
 const SEAT_URL    = process.env.SEAT_SERVICE_URL    || 'localhost:50052';
 const PAYMENT_URL = process.env.PAYMENT_SERVICE_URL || 'localhost:50054';
+const TRIP_URL    = process.env.TRIP_SERVICE_URL    || 'localhost:50051';
 
 const seatClient    = new SeatService(SEAT_URL,    grpc.credentials.createInsecure());
 const paymentClient = new PaymentService(PAYMENT_URL, grpc.credentials.createInsecure());
+const tripClient    = new TripService(TRIP_URL,    grpc.credentials.createInsecure());
 
 const clients = {
   seat:    promisifyClient(seatClient),
   payment: promisifyClient(paymentClient),
+  trip:    promisifyClient(tripClient),
 };
 
 console.log(`[booking-service] gRPC clients: seat:${SEAT_URL}, payment:${PAYMENT_URL}`);
