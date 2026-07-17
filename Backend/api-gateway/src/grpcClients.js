@@ -59,31 +59,31 @@ const adminProto    = loadProto('admin.proto',   'admin');
 const clients = {
   trip: promisifyClient(
     new tripProto.TripService(
-      process.env.TRIP_SERVICE_URL ?? 'localhost:50051',
+      process.env.TRIP_SERVICE_URL ?? '127.0.0.1:50051',
       grpc.credentials.createInsecure()
     )
   ),
   seat: promisifyClient(
     new seatProto.SeatService(
-      process.env.SEAT_SERVICE_URL ?? 'localhost:50052',
+      process.env.SEAT_SERVICE_URL ?? '127.0.0.1:50052',
       grpc.credentials.createInsecure()
     )
   ),
   booking: promisifyClient(
     new bookingProto.BookingService(
-      process.env.BOOKING_SERVICE_URL ?? 'localhost:50053',
+      process.env.BOOKING_SERVICE_URL ?? '127.0.0.1:50053',
       grpc.credentials.createInsecure()
     )
   ),
   payment: promisifyClient(
     new paymentProto.PaymentService(
-      process.env.PAYMENT_SERVICE_URL ?? 'localhost:50054',
+      process.env.PAYMENT_SERVICE_URL ?? '127.0.0.1:50054',
       grpc.credentials.createInsecure()
     )
   ),
   admin: promisifyClient(
     new adminProto.AdminService(
-      process.env.ADMIN_SERVICE_URL ?? 'localhost:50055',
+      process.env.ADMIN_SERVICE_URL ?? '127.0.0.1:50055',
       grpc.credentials.createInsecure()
     )
   ),

@@ -52,7 +52,7 @@ async function startTicketIssuedConsumer(retries = 10) {
           return;
         }
 
-        const { bookingId, tickets = [] } = payload;
+        const { bookingId, tickets = [], tripInfo = {} } = payload;
         console.log(`[notification-worker] Nhận ticket.issued: bookingId=${bookingId}, ${tickets.length} vé`);
 
         try {
@@ -67,6 +67,7 @@ async function startTicketIssuedConsumer(retries = 10) {
             recipientName,
             bookingId,
             tickets,
+            tripInfo,
           });
 
           console.log(`[notification-worker] ✓ Gửi email xác nhận booking ${bookingId}`);

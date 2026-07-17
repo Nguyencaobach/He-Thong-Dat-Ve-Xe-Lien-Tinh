@@ -84,15 +84,28 @@ const bookingRepository = {
   // ═══════════════════════════════════════════════════════════════════════════
 
   async findById(bookingId) {
+    if (!bookingId) return null;
+    if (bookingId.length <= 15) { // Dạng short code (ví dụ: C83A4712 hoặc C83A4712-A01)
+      const prefix = bookingId.split('-')[0].trim().toLowerCase();
+      return db('bookings').whereRaw('id::text ILIKE ?', [`${prefix}%`]).first();
+    }
     return db('bookings').where({ id: bookingId }).first();
   },
 
   async findWithPassengers(bookingId) {
-    const booking = await db('bookings').where({ id: bookingId }).first();
+    if (!bookingId) return null;
+    let booking;
+    if (bookingId.length <= 15) {
+      const prefix = bookingId.split('-')[0].trim().toLowerCase();
+      booking = await db('bookings').whereRaw('id::text ILIKE ?', [`${prefix}%`]).first();
+    } else {
+      booking = await db('bookings').where({ id: bookingId }).first();
+    }
+    
     if (!booking) return null;
 
     const passengers = await db('passengers')
-      .where({ booking_id: bookingId })
+      .where({ booking_id: booking.id })
       .orderBy('seat_number');
 
     return { ...booking, passengers };

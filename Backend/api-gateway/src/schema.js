@@ -79,6 +79,35 @@ const typeDefs = gql`
     departureStation: String
     arrivalStation: String
     busType: String
+    pickUpPoint: String
+    dropOffPoint: String
+    distance: Int
+    status: String
+    routeId: ID
+    busId: ID
+    companyName: String
+  }
+
+  type TripListResult {
+    trips: [Trip!]!
+    total: Int!
+  }
+
+  type Route {
+    id: ID!
+    name: String!
+    departureProvince: String!
+    arrivalProvince: String!
+    departureStation: String!
+    arrivalStation: String!
+    distanceKm: Int!
+    durationMinutes: Int!
+    isActive: Boolean!
+  }
+
+  type RouteListResult {
+    routes: [Route!]!
+    total: Int!
   }
 
   # ─────────────────────────────────────────────
@@ -89,6 +118,10 @@ const typeDefs = gql`
     seatId: ID!
     seatNumber: String!
     status: SeatStatus!
+    floor: Int
+    row: Int
+    col: Int
+    type: String
   }
 
   type SeatMap {
@@ -177,6 +210,7 @@ const typeDefs = gql`
 
   type Bus {
     busId:        ID!
+    name:         String!
     licensePlate: String!
     busType:      String!
     totalSeats:   Int!
@@ -203,6 +237,21 @@ const typeDefs = gql`
     seatNumber:    String
   }
 
+  type EventLog {
+    id: ID!
+    userEmail: String
+    action: String
+    entity: String
+    details: String
+    createdAt: String
+  }
+
+  type EventLogListResult {
+    logs: [EventLog!]!
+    total: Int!
+  }
+
+
   # ─────────────────────────────────────────────
   # QUERIES - Các truy vấn đọc dữ liệu
   # ─────────────────────────────────────────────
@@ -216,6 +265,9 @@ const typeDefs = gql`
     "Tìm kiếm chuyến xe theo điểm đi, điểm đến, ngày (Module 1)"
     searchTrips(departure: String!, destination: String!, date: String!): [Trip!]!
 
+    "Lấy danh sách các chuyến xe phổ biến (cho trang chủ)"
+    popularTrips: [Trip!]!
+
     "Lấy chi tiết một chuyến xe cụ thể"
     getTripDetails(tripId: ID!): Trip
 
@@ -227,6 +279,9 @@ const typeDefs = gql`
     "Tra cứu đơn đặt vé (guest: cần bookingId + email)"
     getBooking(bookingId: ID!): Booking
 
+    "Lấy danh sách vé của khách hàng đang đăng nhập"
+    myBookings: [Booking!]!
+
     # PAYMENT - Module 3
     "Kiểm tra trạng thái giao dịch thanh toán"
     checkPaymentStatus(transactionId: ID!): PaymentStatus
@@ -235,11 +290,23 @@ const typeDefs = gql`
     "Dashboard thống kê cho Admin (Module 4)"
     getDashboardStats(date: String!): DashboardStats
 
+    "Lấy danh sách tuyến xe (Admin)"
+    listRoutes(page: Int, limit: Int): RouteListResult!
+
+    "Lấy danh sách chuyến xe (Admin)"
+    listAdminTrips(page: Int, limit: Int, date: String): TripListResult!
+
     "Lấy danh sách xe (Admin)"
     listBuses(status: String, limit: Int, offset: Int): BusListResult!
 
     "Lấy thông tin một xe"
     getBus(busId: ID!): Bus
+    
+    "Lấy danh sách nhân viên"
+    listStaffs: [User!]!
+
+    "Lấy danh sách log sự kiện"
+    listEventLogs(page: Int, limit: Int, date: String): EventLogListResult!
   }
 
   # ─────────────────────────────────────────────
@@ -253,6 +320,18 @@ const typeDefs = gql`
 
     "Đăng nhập, nhận JWT Token"
     login(email: String!, password: String!): AuthPayload!
+
+    "Tạo nhân viên mới"
+    createStaff(fullName: String!, email: String!, password: String!): User!
+    
+    "Cập nhật thông tin nhân viên"
+    updateStaff(id: ID!, fullName: String!, email: String!, password: String): User!
+    
+    "Xóa nhân viên"
+    deleteStaff(id: ID!): SimpleAdminResult!
+
+    "Xóa log theo ngày cũ"
+    deleteEventLogs(date: String!): SimpleAdminResult!
 
     # SEAT - Module 2
     # Trả về thành công hay không và có kèm token để tiếp tục thanh toán
@@ -273,11 +352,69 @@ const typeDefs = gql`
     processPayment(bookingId: ID!, amount: Float!, paymentMethod: String!): PaymentResult!
 
     # ADMIN - Module 4
-    "Thêm/Sửa/Xóa chuyến xe (chỉ ADMIN)"
+    "Tạo tuyến xe mới (chỉ ADMIN)"
+    createRoute(
+      departureProvince: String!,
+      arrivalProvince: String!,
+      departureStation: String!,
+      arrivalStation: String!,
+      distanceKm: Int!,
+      durationMinutes: Int!
+    ): Route!
+
+    "Cập nhật tuyến xe (chỉ ADMIN)"
+    updateRoute(
+      id: ID!,
+      departureProvince: String!,
+      arrivalProvince: String!,
+      isActive: Boolean!
+    ): Route!
+
+    "Xóa tuyến xe (chỉ ADMIN)"
+    deleteRoute(id: ID!): SimpleAdminResult!
+
+    "Tạo chuyến xe (chỉ ADMIN)"
+    createTrip(
+      routeId: ID!,
+      busId: ID!,
+      busType: String,
+      departureTime: String!,
+      arrivalTime: String!,
+      price: Float!,
+      pickUpPoint: String,
+      dropOffPoint: String,
+      distance: Int,
+      status: String,
+      totalSeats: Int
+    ): Trip!
+
+    "Cập nhật chuyến xe (chỉ ADMIN)"
+    updateTrip(
+      id: ID!,
+      routeId: ID!,
+      busId: ID!,
+      busType: String,
+      departureTime: String!,
+      arrivalTime: String!,
+      price: Float!,
+      pickUpPoint: String,
+      dropOffPoint: String,
+      distance: Int,
+      status: String,
+      totalSeats: Int
+    ): Trip!
+
+    "Xóa chuyến xe (chỉ ADMIN)"
+    deleteTrip(id: ID!): SimpleAdminResult!
+
+    "Thêm/Sửa/Xóa chuyến xe (chỉ ADMIN) - deprecated"
     manageTrip(action: String!, tripId: ID, routeName: String): ManageTripResult!
 
     "Tạo xe mới (chỉ ADMIN)"
-    createBus(licensePlate: String!, busType: String!, totalSeats: Int!, status: String): Bus!
+    createBus(name: String, licensePlate: String!, busType: String!, totalSeats: Int!, seatLayout: String, status: String): Bus!
+
+    "Cập nhật thông tin xe (chỉ ADMIN)"
+    updateBus(busId: ID!, name: String, licensePlate: String, busType: String, totalSeats: Int, seatLayout: String, status: String): Bus!
 
     "Xóa xe (chỉ ADMIN)"
     deleteBus(busId: ID!): SimpleAdminResult!

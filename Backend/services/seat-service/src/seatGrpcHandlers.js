@@ -28,7 +28,7 @@ function createSeatGrpcHandlers() {
      */
     async GetSeatMap(call, callback) {
       try {
-        const { tripId } = call.request;
+        const { tripId, seatLayout } = call.request;
 
         if (!tripId) {
           return callback({
@@ -38,7 +38,7 @@ function createSeatGrpcHandlers() {
         }
 
         console.log(`[seat-service] GetSeatMap: tripId=${tripId}`);
-        const result = await seatService.getSeatMap(tripId);
+        const result = await seatService.getSeatMap(tripId, seatLayout);
 
         callback(null, result);
       } catch (error) {

@@ -24,12 +24,12 @@ const seatService = {
    * Lấy sơ đồ ghế với trạng thái real-time
    * Trả về mảng Seat với status hiện tại từ Redis
    */
-  async getSeatMap(tripId) {
+  async getSeatMap(tripId, seatLayout) {
     if (!tripId) {
       throw new Error('tripId là bắt buộc.');
     }
 
-    const seats = await seatRepository.getSeatMap(tripId);
+    const seats = await seatRepository.getSeatMap(tripId, seatLayout);
     return { tripId, seats };
   },
 

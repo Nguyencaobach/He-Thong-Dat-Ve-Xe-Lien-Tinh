@@ -57,6 +57,7 @@ message CreateBusRequest {
   int32  totalSeats   = 3;
   string seatLayout   = 4;  // JSON string: cấu hình sơ đồ ghế
   string status       = 5;  // ACTIVE | MAINTENANCE | INACTIVE
+  string name         = 6;  // Tên xe
 }
 
 message GetBusRequest {
@@ -64,12 +65,13 @@ message GetBusRequest {
 }
 
 message UpdateBusRequest {
-  string busId       = 1;
+  string busId        = 1;
   string licensePlate = 2;
   string busType      = 3;
   int32  totalSeats   = 4;
   string seatLayout   = 5;
   string status       = 6;
+  string name         = 7;
 }
 
 message DeleteBusRequest {
@@ -83,13 +85,14 @@ message ListBusesRequest {
 }
 
 message BusResponse {
-  string busId       = 1;
+  string busId        = 1;
   string licensePlate = 2;
   string busType      = 3;
   int32  totalSeats   = 4;
   string seatLayout   = 5; // JSON string
   string status       = 6;
   string createdAt    = 7;
+  string name         = 8;
 }
 
 message ListBusesResponse {

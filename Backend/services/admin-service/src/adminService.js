@@ -21,21 +21,33 @@ const adminService = {
   // BUS CRUD
   // ═════════════════════════════════════════════════════════════════════════
 
-  async createBus({ licensePlate, busType, totalSeats, seatLayout, status }) {
+  async createBus({ name, licensePlate, busType, totalSeats, seatLayout, status }) {
     if (!licensePlate || !busType || !totalSeats) {
       throw new Error('Thiếu thông tin bắt buộc: licensePlate, busType, totalSeats');
     }
 
-    // Nếu không truyền seatLayout, clone từ template
+    const db = require('./db');
+    const existing = await db('buses').where({ license_plate: licensePlate }).first();
+    if (existing) {
+      throw new Error(`Biển số xe ${licensePlate} đã tồn tại trong hệ thống.`);
+    }
+
     let layout = seatLayout;
-    if (!layout) {
+    if (!layout || Object.keys(layout).length === 0) {
       const template = await adminRepository.findTemplateByName(busType);
-      if (!template) throw new Error(`Không tìm thấy template cho busType: ${busType}`);
-      layout = template.layout;
+      if (!template) {
+        console.warn(`[admin-service] Không tìm thấy template sơ đồ ghế cho: ${busType}, khởi tạo sơ đồ rỗng.`);
+        layout = {};
+      } else {
+        layout = template.layout;
+      }
     }
 
     const bus = await adminRepository.createBus({
-      licensePlate, busType, totalSeats,
+      name,
+      licensePlate,
+      busType,
+      totalSeats,
       seatLayout: typeof layout === 'string' ? layout : JSON.stringify(layout),
       status,
     });
@@ -65,7 +77,19 @@ const adminService = {
     const bus = await adminRepository.findBusById(busId);
     if (!bus) throw new Error(`Không tìm thấy xe: ${busId}`);
 
+    if (updates.licensePlate && updates.licensePlate !== bus.license_plate) {
+      const db = require('./db');
+      const existing = await db('buses')
+        .where({ license_plate: updates.licensePlate })
+        .whereNot('id', busId)
+        .first();
+      if (existing) {
+        throw new Error(`Biển số xe ${updates.licensePlate} đã tồn tại trong hệ thống.`);
+      }
+    }
+
     const updated = await adminRepository.updateBus(busId, {
+      name:          updates.name !== undefined ? updates.name : bus.name,
       license_plate: updates.licensePlate || bus.license_plate,
       bus_type:      updates.busType      || bus.bus_type,
       total_seats:   updates.totalSeats   || bus.total_seats,

@@ -110,6 +110,45 @@ function createBookingGrpcHandlers() {
         callback({ code: grpc.status.INTERNAL, message: error.message });
       }
     },
+
+    /**
+     * ListBookingsByUser: Lấy danh sách đơn vé của user
+     * Request: { userId, limit }
+     * Response: { bookings[] }
+     */
+    async ListBookingsByUser(call, callback) {
+      try {
+        const { userId, limit } = call.request;
+
+        if (!userId) {
+          return callback({ code: grpc.status.INVALID_ARGUMENT, message: 'Thiếu userId' });
+        }
+
+        const bookings = await bookingService.listBookingsByUser(userId, limit || 50);
+
+        callback(null, {
+          bookings: bookings.map(b => ({
+            bookingId:   b.id,
+            userId:      b.user_id,
+            tripId:      b.trip_id,
+            seatIds:     b.seat_ids,
+            totalAmount: parseFloat(b.total_amount),
+            status:      b.status,
+            passengers:  b.passengers ? b.passengers.map(p => ({
+              fullName: p.full_name,
+              phone: p.phone,
+              email: p.email,
+              idNumber: p.id_number,
+              seatId: p.seat_id,
+              seatNumber: p.seat_number
+            })) : [],
+          })),
+        });
+      } catch (error) {
+        console.error('[booking-service] ListBookingsByUser error:', error.message);
+        callback({ code: grpc.status.INTERNAL, message: error.message });
+      }
+    },
   };
 }
 

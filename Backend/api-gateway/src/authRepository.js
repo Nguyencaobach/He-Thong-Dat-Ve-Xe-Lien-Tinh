@@ -46,6 +46,46 @@ const authRepository = {
     );
     return result.rows[0];
   },
+
+  async listStaffs() {
+    const result = await pool.query(
+      'SELECT id, email, role, full_name, phone, created_at FROM users WHERE role = $1 ORDER BY created_at DESC',
+      ['STAFF']
+    );
+    return result.rows;
+  },
+
+  async update(id, data) {
+    const fields = [];
+    const values = [];
+    let query = 'UPDATE users SET ';
+
+    if (data.fullName !== undefined) {
+      fields.push(`full_name = $${fields.length + 1}`);
+      values.push(data.fullName);
+    }
+    if (data.email !== undefined) {
+      fields.push(`email = $${fields.length + 1}`);
+      values.push(data.email);
+    }
+    if (data.passwordHash !== undefined) {
+      fields.push(`password_hash = $${fields.length + 1}`);
+      values.push(data.passwordHash);
+    }
+
+    if (fields.length === 0) return null;
+
+    query += fields.join(', ') + ` WHERE id = $${fields.length + 1} RETURNING id, email, role, full_name, phone, created_at`;
+    values.push(id);
+
+    const result = await pool.query(query, values);
+    return result.rows[0];
+  },
+
+  async delete(id) {
+    const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
+    return result.rowCount > 0;
+  }
 };
 
 module.exports = authRepository;

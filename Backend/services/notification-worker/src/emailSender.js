@@ -111,10 +111,11 @@ function renderEmailHtml({ recipientName, bookingId, tickets }) {
  * @param {string} params.bookingId
  * @param {Array}  params.tickets - Danh sách vé đã sinh
  */
-async function sendBookingConfirmationEmail({ to, recipientName, bookingId, tickets }) {
+async function sendBookingConfirmationEmail({ to, recipientName, bookingId, tickets, tripInfo }) {
   if (!transporter) await initTransporter();
 
-  const subject = `✅ Xác nhận đặt vé – Mã booking ${bookingId.substring(0, 8).toUpperCase()}`;
+  const ticketIds = tickets.map((t) => t.ticketId).join(', ');
+  const subject = `✅ Xác nhận đặt vé – Mã vé ${ticketIds}`;
   const html    = renderEmailHtml({ recipientName, bookingId, tickets });
 
   const mailOptions = {
@@ -131,7 +132,13 @@ async function sendBookingConfirmationEmail({ to, recipientName, bookingId, tick
     console.log(`  ► From:    ${EMAIL_FROM}`);
     console.log(`  ► To:      ${to || 'guest@example.com'}`);
     console.log(`  ► Subject: ${subject}`);
-    console.log(`  ► Tickets: ${tickets.map((t) => t.ticketId).join(', ')}`);
+    
+    if (tripInfo) {
+      console.log(`  ► Chuyến đi: ${tripInfo.departure_station || tripInfo.departure_province} → ${tripInfo.arrival_station || tripInfo.arrival_province}`);
+      console.log(`  ► Khởi hành: ${tripInfo.departure_time}`);
+    }
+
+    console.log(`  ► Tickets: ${ticketIds}`);
     console.log(`  ► QR codes: ${tickets.map((t) => t.qrCode).join(' | ')}`);
     console.log('═'.repeat(60) + '\n');
     return { mode: 'log', success: true };

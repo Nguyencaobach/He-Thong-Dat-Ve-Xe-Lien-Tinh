@@ -21,3 +21,18 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Index tìm kiếm nhanh theo email (dùng khi đăng nhập)
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+-- ============================================================
+-- Dữ liệu mẫu (Seed Data)
+-- ============================================================
+
+-- Thêm tài khoản Admin mặc định (mật khẩu: 123456)
+INSERT INTO users (email, password_hash, role, full_name, phone) 
+VALUES (
+    'admin@gmail.com', 
+    '$2a$12$iv5J3/g.Of8Rtot8c2TchuukJViNXrWLYelUJeLNSO3T.NIfe7mne', 
+    'ADMIN', 
+    'System Admin', 
+    '0987654321'
+)
+ON CONFLICT (email) DO NOTHING;

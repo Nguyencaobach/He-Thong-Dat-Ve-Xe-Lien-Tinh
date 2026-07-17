@@ -23,11 +23,11 @@ function createAdminGrpcHandlers() {
     // ── Bus CRUD ─────────────────────────────────────────────────────────────
     async CreateBus(call, callback) {
       try {
-        const { licensePlate, busType, totalSeats, seatLayout, status } = call.request;
+        const { name, licensePlate, busType, totalSeats, seatLayout, status } = call.request;
         if (!licensePlate || !busType || !totalSeats) {
           return callback({ code: grpc.status.INVALID_ARGUMENT, message: 'Thiếu licensePlate, busType hoặc totalSeats' });
         }
-        const bus = await adminService.createBus({ licensePlate, busType, totalSeats: parseInt(totalSeats), seatLayout, status });
+        const bus = await adminService.createBus({ name, licensePlate, busType, totalSeats: parseInt(totalSeats), seatLayout, status });
         callback(null, _mapBus(bus));
       } catch (err) {
         console.error('[admin] CreateBus error:', err.message);
@@ -143,6 +143,7 @@ function _mapBus(bus) {
   if (!bus) return null;
   return {
     busId:        bus.id,
+    name:         bus.name || '',
     licensePlate: bus.license_plate,
     busType:      bus.bus_type,
     totalSeats:   bus.total_seats,

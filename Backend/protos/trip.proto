@@ -5,6 +5,77 @@ package trip;
 service TripService {
   rpc SearchTrips (SearchRequest) returns (SearchResponse);
   rpc GetTripDetails (GetTripRequest) returns (TripResponse);
+  rpc GetPopularTrips (EmptyRequest) returns (SearchResponse);
+  
+  // Admin Route Management
+  rpc CreateRoute (CreateRouteRequest) returns (RouteResponse);
+  rpc UpdateRoute (UpdateRouteRequest) returns (RouteResponse);
+  rpc DeleteRoute (DeleteRouteRequest) returns (DeleteRouteResponse);
+  rpc ListRoutes (ListRoutesRequest) returns (ListRoutesResponse);
+
+  // Admin Trip Management
+  rpc CreateTrip (CreateTripRequest) returns (TripResponse);
+  rpc UpdateTrip (UpdateTripRequest) returns (TripResponse);
+  rpc DeleteTrip (DeleteTripRequest) returns (DeleteTripResponse);
+  rpc ListAdminTrips (ListAdminTripsRequest) returns (ListAdminTripsResponse);
+}
+
+message EmptyRequest {}
+
+message UpdateRouteRequest {
+  string id = 1;
+  string departureProvince = 2;
+  string arrivalProvince = 3;
+  bool isActive = 4;
+}
+
+message DeleteRouteRequest {
+  string id = 1;
+}
+
+message DeleteRouteResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DeleteTripRequest {
+  string id = 1;
+}
+
+message DeleteTripResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// ── Admin Route Messages ────────────────────────────────────────────────────────
+message ListRoutesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message ListRoutesResponse {
+  repeated RouteResponse routes = 1;
+  int32 total = 2;
+}
+message CreateRouteRequest {
+  string departureProvince = 1;
+  string arrivalProvince = 2;
+  string departureStation = 3;
+  string arrivalStation = 4;
+  int32 distanceKm = 5;
+  int32 durationMinutes = 6;
+}
+
+message RouteResponse {
+  string id = 1;
+  string name = 2;
+  string departureProvince = 3;
+  string arrivalProvince = 4;
+  string departureStation = 5;
+  string arrivalStation = 6;
+  int32 distanceKm = 7;
+  int32 durationMinutes = 8;
+  bool isActive = 9;
 }
 
 message SearchRequest {
@@ -15,6 +86,46 @@ message SearchRequest {
 
 message SearchResponse {
   repeated TripResponse trips = 1;
+}
+
+message ListAdminTripsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string date = 3;
+}
+
+message ListAdminTripsResponse {
+  repeated TripResponse trips = 1;
+  int32 total = 2;
+}
+
+message CreateTripRequest {
+  string routeId = 1;
+  string busId = 2;
+  string busType = 3;
+  string departureTime = 4;
+  string arrivalTime = 5;
+  double price = 6;
+  string pickUpPoint = 7;
+  string dropOffPoint = 8;
+  int32 distance = 9;
+  string status = 10;
+  int32 totalSeats = 11;
+}
+
+message UpdateTripRequest {
+  string id = 1;
+  string routeId = 2;
+  string busId = 3;
+  string busType = 4;
+  string departureTime = 5;
+  string arrivalTime = 6;
+  double price = 7;
+  string pickUpPoint = 8;
+  string dropOffPoint = 9;
+  int32 distance = 10;
+  string status = 11;
+  int32 totalSeats = 12;
 }
 
 message GetTripRequest {
@@ -31,4 +142,10 @@ message TripResponse {
   string departureStation = 7;
   string arrivalStation = 8;
   string busType = 9;
+  string pickUpPoint = 10;
+  string dropOffPoint = 11;
+  int32 distance = 12;
+  string status = 13;
+  string routeId = 14;
+  string busId = 15;
 }

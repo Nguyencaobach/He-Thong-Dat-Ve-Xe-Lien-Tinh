@@ -107,7 +107,7 @@ const bookingService = {
    * Đặc tả 6.3 điểm 5: Booking Service xác nhận ghế với Seat Inventory Service
    */
   async confirmPaymentSuccess({ bookingId, transactionId, paymentMethod }) {
-    const booking = await bookingRepository.findById(bookingId);
+    const booking = await bookingRepository.findWithPassengers(bookingId);
     if (!booking) {
       throw new Error(`Không tìm thấy booking: ${bookingId}`);
     }
@@ -117,6 +117,18 @@ const bookingService = {
       return booking;
     }
 
+    // Lấy thông tin chuyến đi từ trip-service để truyền sang ticket-worker
+    let tripInfo = {};
+    try {
+      const tripDetails = await clients.trip.GetTripDetails(
+        { tripId: booking.trip_id },
+        new grpc.Metadata()
+      );
+      tripInfo = tripDetails.trip || tripDetails;
+    } catch (err) {
+      console.warn(`[booking-service] Không thể lấy tripInfo cho booking ${bookingId}:`, err.message);
+    }
+
     // Bước 1: Chốt ghế vĩnh viễn (HELD → BOOKED) tại seat-service
     for (const seatId of booking.seat_ids) {
       try {
@@ -124,13 +136,10 @@ const bookingService = {
         metadata.add('booking-id', bookingId);
         metadata.add('user-id', booking.user_id);
 
-        const result = await new Promise((resolve, reject) => {
-          seatClient.BookSeat(
-            { tripId: booking.trip_id, seatId },
-            metadata,
-            (err, res) => { if (err) reject(err); else resolve(res); }
-          );
-        });
+        const result = await clients.seat.BookSeat(
+          { tripId: booking.trip_id, seatId },
+          metadata
+        );
 
         if (!result.success) {
           console.error(`[booking-service] BookSeat thất bại cho ${seatId}: ${result.message}`);
@@ -163,6 +172,8 @@ const bookingService = {
           tripId:        booking.trip_id,
           seatIds:       booking.seat_ids,
           totalAmount:   booking.total_amount,
+          passengers:    booking.passengers,
+          tripInfo:      tripInfo,
           transactionId,
           paymentMethod,
           paidAt:        new Date().toISOString(),
@@ -172,7 +183,7 @@ const bookingService = {
     });
 
     console.log(`[booking-service] ✓ Booking ${bookingId} → PAID (transaction=${transactionId})`);
-    return bookingRepository.findById(bookingId);
+    return bookingRepository.findWithPassengers(bookingId);
   },
 
   /**
@@ -207,10 +218,8 @@ const bookingService = {
       throw new Error(`Không thể hủy booking ở trạng thái ${booking.status}.`);
     }
 
-    // Nhả ghế nếu đang PENDING (ghế đang HELD)
-    if (booking.status === 'PENDING_PAYMENT') {
-      await _releaseSeats(booking.trip_id, booking.seat_ids, booking.user_id);
-    }
+    // Nhả ghế bất kể là PENDING (đang HELD) hay PAID (đã BOOKED)
+    await _releaseSeats(booking.trip_id, booking.seat_ids, booking.user_id);
 
     const updated = await bookingRepository.transition(bookingId, 'CANCELLED');
     console.log(`[booking-service] Booking ${bookingId} → CANCELLED (by ${userId})`);
@@ -249,6 +258,20 @@ const bookingService = {
         console.error(`[booking-service] Lỗi expire booking ${booking.id}:`, err.message);
       }
     }
+  },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // LIST BOOKINGS BY USER
+  // ═════════════════════════════════════════════════════════════════════════
+  async listBookingsByUser(userId, limit = 50) {
+    const bookings = await bookingRepository.findByUserId(userId, limit);
+    // Enrich each booking with passengers
+    const enriched = [];
+    for (const booking of bookings) {
+      const full = await bookingRepository.findWithPassengers(booking.id);
+      enriched.push(full);
+    }
+    return enriched;
   },
 };
 

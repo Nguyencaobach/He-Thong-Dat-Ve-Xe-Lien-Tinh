@@ -11,8 +11,9 @@ const adminRepository = {
   // BUS CRUD (Đặc tả 7.2 điểm 2)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  async createBus({ licensePlate, busType, totalSeats, seatLayout, status, notes }) {
+  async createBus({ name, licensePlate, busType, totalSeats, seatLayout, status, notes }) {
     const [bus] = await db('buses').insert({
+      name:          name,
       license_plate: licensePlate,
       bus_type:      busType,
       total_seats:   totalSeats,

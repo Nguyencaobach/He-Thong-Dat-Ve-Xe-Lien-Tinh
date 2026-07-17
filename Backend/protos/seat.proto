@@ -11,12 +11,17 @@ service SeatService {
 
 message SeatMapRequest {
   string tripId = 1;
+  string seatLayout = 2; // JSON string of the seat layout from admin
 }
 
 message Seat {
   string seatId = 1;
   string seatNumber = 2;
   string status = 3; // AVAILABLE, HOLD, BOOKED
+  int32 floor = 4;
+  int32 row = 5;
+  int32 col = 6;
+  string type = 7;
 }
 
 message SeatMapResponse {

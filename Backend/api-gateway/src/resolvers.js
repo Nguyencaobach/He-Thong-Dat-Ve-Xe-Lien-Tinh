@@ -11,6 +11,7 @@
  */
 
 const authService = require('./authService');
+const logService = require('./logService');
 const { clients } = require('./grpcClients');
 const { pubsub, EVENTS } = require('./pubsub');
 const { withFilter } = require('graphql-subscriptions');
@@ -57,14 +58,35 @@ const resolvers = {
       return await clients.trip.GetTripDetails({ tripId });
     },
 
+    popularTrips: async () => {
+      const response = await clients.trip.GetPopularTrips({});
+      return response.trips;
+    },
+
     // ── SEAT (Module 2) ──
     getSeatMap: async (_, { tripId }) => {
-      return await clients.seat.GetSeatMap({ tripId });
+      const trip = await clients.trip.GetTripDetails({ tripId });
+      let seatLayout = null;
+      if (trip && trip.busId) {
+        try {
+          const bus = await clients.admin.GetBus({ busId: trip.busId });
+          seatLayout = bus.seatLayout;
+        } catch (err) {
+          console.error("Error fetching bus seatLayout in Gateway:", err.message);
+        }
+      }
+      return await clients.seat.GetSeatMap({ tripId, seatLayout });
     },
 
     // ── BOOKING (Module 3) ──
     getBooking: async (_, { bookingId }) => {
       return await clients.booking.GetBooking({ bookingId });
+    },
+
+    myBookings: async (_, __, context) => {
+      requireAuth(context);
+      const result = await clients.booking.ListBookingsByUser({ userId: context.user.userId, limit: 50 });
+      return result.bookings || [];
     },
 
     // ── PAYMENT (Module 3) ──
@@ -78,14 +100,34 @@ const resolvers = {
       return await clients.admin.GetDashboardStats({ date });
     },
 
+    listRoutes: async (_, args, context) => {
+      requireAdmin(context);
+      return await clients.trip.ListRoutes(args);
+    },
+
+    listAdminTrips: async (_, args, context) => {
+      requireAdmin(context);
+      return await clients.trip.ListAdminTrips(args);
+    },
+
     listBuses: async (_, { status, limit, offset }, context) => {
       requireAdminOrStaff(context);
       return await clients.admin.ListBuses({ status: status || '', limit: limit || 20, offset: offset || 0 });
     },
 
     getBus: async (_, { busId }, context) => {
-      requireAdminOrStaff(context);
+      // Cho phép mọi người xem thông tin bus (để hiển thị biển số xe trên vé)
       return await clients.admin.GetBus({ busId });
+    },
+
+    listStaffs: async (_, __, context) => {
+      requireAdmin(context);
+      return await authService.listStaffs();
+    },
+    
+    listEventLogs: async (_, args, context) => {
+      requireAdmin(context);
+      return await logService.listLogs(args);
     },
   },
 
@@ -97,6 +139,34 @@ const resolvers = {
 
     login: async (_, args) => {
       return authService.login(args);
+    },
+
+    createStaff: async (_, args, context) => {
+      requireAdmin(context);
+      const res = await authService.createStaff(args);
+      logService.logEvent(context.user.email, 'CREATE', 'STAFF', { email: args.email });
+      return res;
+    },
+
+    updateStaff: async (_, args, context) => {
+      requireAdmin(context);
+      const res = await authService.updateStaff(args);
+      logService.logEvent(context.user.email, 'UPDATE', 'STAFF', { id: args.id, email: args.email });
+      return res;
+    },
+
+    deleteStaff: async (_, args, context) => {
+      requireAdmin(context);
+      const res = await authService.deleteStaff(args);
+      logService.logEvent(context.user.email, 'DELETE', 'STAFF', { id: args.id });
+      return res;
+    },
+    
+    deleteEventLogs: async (_, { date }, context) => {
+      requireAdmin(context);
+      const res = await logService.deleteLogsByDate(date);
+      logService.logEvent(context.user.email, 'DELETE', 'LOGS', { date });
+      return res;
     },
 
     // ── SEAT (Module 2) ──
@@ -127,19 +197,72 @@ const resolvers = {
     },
 
     // ── ADMIN (Module 4) ──
+    createRoute: async (_, args, context) => {
+      requireAdmin(context);
+      const res = await clients.trip.CreateRoute(args);
+      logService.logEvent(context.user.email, 'CREATE', 'ROUTE', { routeId: res.id });
+      return res;
+    },
+
+    updateRoute: async (_, args, context) => {
+      requireAdmin(context);
+      const res = await clients.trip.UpdateRoute(args);
+      logService.logEvent(context.user.email, 'UPDATE', 'ROUTE', { routeId: res.id });
+      return res;
+    },
+
+    deleteRoute: async (_, args, context) => {
+      requireAdmin(context);
+      const res = await clients.trip.DeleteRoute(args);
+      logService.logEvent(context.user.email, 'DELETE', 'ROUTE', { routeId: args.id });
+      return res;
+    },
+
+    createTrip: async (_, args, context) => {
+      requireAdmin(context);
+      const res = await clients.trip.CreateTrip(args);
+      logService.logEvent(context.user.email, 'CREATE', 'TRIP', { tripId: res.id });
+      return res;
+    },
+
+    updateTrip: async (_, args, context) => {
+      requireAdmin(context);
+      const res = await clients.trip.UpdateTrip(args);
+      logService.logEvent(context.user.email, 'UPDATE', 'TRIP', { tripId: res.id });
+      return res;
+    },
+
+    deleteTrip: async (_, args, context) => {
+      requireAdmin(context);
+      const res = await clients.trip.DeleteTrip(args);
+      logService.logEvent(context.user.email, 'DELETE', 'TRIP', { tripId: args.id });
+      return res;
+    },
+
     manageTrip: async (_, args, context) => {
       requireAdmin(context);
       return await clients.admin.ManageTrip(args);
     },
 
-    createBus: async (_, { licensePlate, busType, totalSeats, status }, context) => {
+    createBus: async (_, args, context) => {
       requireAdmin(context);
-      return await clients.admin.CreateBus({ licensePlate, busType, totalSeats, status: status || 'ACTIVE' });
+      const res = await clients.admin.CreateBus(args);
+      logService.logEvent(context.user.email, 'CREATE', 'BUS', { busId: res.busId });
+      return res;
+    },
+
+    updateBus: async (_, args, context) => {
+      requireAdmin(context);
+      const res = await clients.admin.UpdateBus(args);
+      logService.logEvent(context.user.email, 'UPDATE', 'BUS', { busId: res.busId });
+      return res;
     },
 
     deleteBus: async (_, { busId }, context) => {
       requireAdmin(context);
-      return await clients.admin.DeleteBus({ busId });
+      const res = await clients.admin.DeleteBus({ busId });
+      logService.logEvent(context.user.email, 'DELETE', 'BUS', { busId });
+      return res;
     },
 
     blockSeat: async (_, { tripId, seatId, reason }, context) => {
@@ -161,6 +284,18 @@ const resolvers = {
         staffId: staffId || context.user.userId,
       });
     },
+  },
+
+  Trip: {
+    companyName: async (trip) => {
+      try {
+        if (!trip.busId) return "BusTicketHub Express";
+        const bus = await clients.admin.GetBus({ busId: trip.busId });
+        return bus.name || "BusTicketHub Express";
+      } catch (err) {
+        return "BusTicketHub Express";
+      }
+    }
   },
 
   // ── SUBSCRIPTIONS (Module 2 - real-time seat updates) ──────────────────────

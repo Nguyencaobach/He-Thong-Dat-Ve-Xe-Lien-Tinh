@@ -9,6 +9,17 @@ service BookingService {
   rpc GetBooking (GetBookingRequest) returns (BookingResponse);
   // Hủy đơn vé
   rpc CancelBooking (CancelBookingRequest) returns (CancelBookingResponse);
+  // Lấy danh sách booking của user
+  rpc ListBookingsByUser (ListByUserRequest) returns (ListByUserResponse);
+}
+
+message ListByUserRequest {
+  string userId = 1;
+  int32 limit = 2;
+}
+
+message ListByUserResponse {
+  repeated BookingResponse bookings = 1;
 }
 
 message PassengerInput {

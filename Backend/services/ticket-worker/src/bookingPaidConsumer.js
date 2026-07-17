@@ -69,6 +69,7 @@ async function startBookingPaidConsumer(retries = 10) {
             userId:     payload.userId,
             tripId:     payload.tripId,
             paidAt:     payload.paidAt,
+            tripInfo:   payload.tripInfo,
             tickets,   // Danh sách vé đã sinh: [{ ticketId, seatId, qrCode, htmlPath, passengerName, passengerEmail }]
           });
 

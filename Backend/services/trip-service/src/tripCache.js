@@ -90,6 +90,21 @@ const tripCache = {
     }
   },
 
+  /**
+   * Xóa toàn bộ cache tìm kiếm khi thêm/sửa/xóa chuyến xe
+   */
+  async clearAllSearchCache() {
+    try {
+      const keys = await redis.keys('search:*');
+      if (keys.length > 0) {
+        await redis.del(keys);
+        console.log(`[trip-cache] Đã xóa ${keys.length} cache tìm kiếm chuyến xe.`);
+      }
+    } catch (err) {
+      console.warn('[trip-cache] Lỗi xóa toàn bộ cache tìm kiếm:', err.message);
+    }
+  },
+
   async quit() {
     await redis.quit();
   },

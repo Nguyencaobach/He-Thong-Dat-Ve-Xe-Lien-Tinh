@@ -9,6 +9,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const authRepository = require('./authRepository');
+const logService = require('./logService');
 require('dotenv').config();
 
 // Số vòng hash: 12 là mức an toàn phổ biến cho production
@@ -45,6 +46,8 @@ const authService = {
 
     // Bước 4: Cấp JWT token để user dùng ngay
     const token = generateToken(newUser);
+    
+    logService.logEvent(email, 'REGISTER', 'AUTH', { role: newUser.role });
 
     return { token, user: newUser };
   },
@@ -73,13 +76,12 @@ const authService = {
 
     // Bước 3: Cấp JWT token
     const token = generateToken(user);
+    
+    logService.logEvent(email, 'LOGIN', 'AUTH', { role: user.role });
 
     return { token, user };
   },
 
-  /**
-   * Lấy thông tin user hiện tại từ id (dùng cho query `me`)
-   */
   async getMe(userId) {
     const user = await authRepository.findById(userId);
     if (!user) {
@@ -87,6 +89,59 @@ const authService = {
     }
     return user;
   },
+
+  async listStaffs() {
+    return await authRepository.listStaffs();
+  },
+
+  async createStaff({ email, password, fullName }) {
+    const existingUser = await authRepository.findByEmail(email);
+    if (existingUser) {
+      throw new Error('Email này đã được sử dụng.');
+    }
+
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+    const newUser = await authRepository.create({
+      email,
+      passwordHash,
+      role: 'STAFF',
+      fullName,
+    });
+    
+    // We don't have request context here for the admin's email easily in authService alone, 
+    // but the system will log it under the newly created email or "SYSTEM" if we want. 
+    // Actually, we should pass context.user.email from resolvers. Let's do that in resolvers.js instead!
+    return newUser;
+  },
+
+  async updateStaff({ id, email, password, fullName }) {
+    if (email) {
+      const existingUser = await authRepository.findByEmail(email);
+      if (existingUser && existingUser.id !== id) {
+        throw new Error('Email này đã được sử dụng bởi người khác.');
+      }
+    }
+
+    const data = { fullName, email };
+    if (password) {
+      data.passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    }
+
+    const updatedUser = await authRepository.update(id, data);
+    if (!updatedUser) {
+      throw new Error('Nhân viên không tồn tại hoặc cập nhật thất bại.');
+    }
+    return updatedUser;
+  },
+
+  async deleteStaff({ id }) {
+    const success = await authRepository.delete(id);
+    if (!success) {
+      throw new Error('Không thể xóa nhân viên này.');
+    }
+    return true;
+  }
 };
 
 /**
@@ -101,6 +156,7 @@ function generateToken(user) {
       userId: user.id,
       email: user.email,
       role: user.role,
+      fullName: user.full_name,
     },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }

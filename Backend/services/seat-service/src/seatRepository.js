@@ -159,8 +159,13 @@ const seatRepository = {
    */
   async forceReleaseSeat(tripId, seatId) {
     const holdKey = keys.hold(tripId, seatId);
-    const deleted = await redis.del(holdKey);
-    console.log(`[seat-repo] FORCE RELEASE: ${holdKey} (deleted=${deleted})`);
+    const bookedKey = keys.booked(tripId, seatId);
+    const pipeline = redis.pipeline();
+    pipeline.del(holdKey);
+    pipeline.del(bookedKey);
+    const results = await pipeline.exec();
+    const deleted = results.reduce((acc, val) => acc + (val[1] > 0 ? 1 : 0), 0);
+    console.log(`[seat-repo] FORCE RELEASE: ${seatId} (deleted=${deleted})`);
     return { success: true, deleted: deleted > 0 };
   },
 
@@ -318,12 +323,12 @@ const seatRepository = {
    *
    * Performance: Dùng pipeline để gom tất cả lệnh EXISTS vào 1 round-trip
    */
-  async getSeatMap(tripId) {
+  async getSeatMap(tripId, seatLayoutJson = null) {
     const seatmapKey = keys.seatmap(tripId);
     const raw = await redis.get(seatmapKey);
 
-    // Nếu chưa có seatmap trong Redis → sinh mặc định cho demo
-    const seats = raw ? JSON.parse(raw) : generateDefaultSeatMap(tripId);
+    // Nếu chưa có seatmap trong Redis → lấy layout từ admin hoặc sinh mặc định
+    const seats = raw ? JSON.parse(raw) : generateDefaultSeatMap(tripId, seatLayoutJson);
 
     if (!raw) {
       // Cache lại để lần sau không cần generate lại
@@ -402,15 +407,48 @@ const seatRepository = {
 // HELPER: Sinh sơ đồ ghế mặc định 34 chỗ (giường nằm) cho demo
 // Trong production, dữ liệu này sẽ đến từ Admin Service khi tạo chuyến
 // ═════════════════════════════════════════════════════════════════════════════
-function generateDefaultSeatMap(tripId) {
+function generateDefaultSeatMap(tripId, seatLayoutJson = null) {
+  if (seatLayoutJson && seatLayoutJson !== "[]" && seatLayoutJson !== "{}") {
+    try {
+      const layout = JSON.parse(seatLayoutJson);
+      if (Array.isArray(layout) && layout.length > 0) {
+        return layout.map(s => ({
+          seatId: `${tripId}_${s.label}`,
+          seatNumber: s.label,
+          floor: s.floor || 1,
+          type: s.type || 'SEAT',
+          row: s.row || 0,
+          col: s.col || 0
+        }));
+      }
+    } catch (e) {
+      console.error("[seat-repo] Error parsing seatLayoutJson:", e);
+    }
+  }
+
   const seats = [];
 
-  // Tầng dưới: A01-A17 (hàng A = cửa sổ trái, hàng B = cửa sổ phải)
+  // Default 34-seat sleeper (2 floors) fallback
+  // Tầng 1: A01-A17
+  let row = 0;
   for (let i = 1; i <= 17; i++) {
     const num = String(i).padStart(2, '0');
-    seats.push({ seatId: `${tripId}_A${num}`, seatNumber: `A${num}`, floor: 1, type: 'sleeper' });
-    seats.push({ seatId: `${tripId}_B${num}`, seatNumber: `B${num}`, floor: 1, type: 'sleeper' });
+    const col = (i % 3 === 1) ? 0 : (i % 3 === 2) ? 2 : 4;
+    if (i % 3 === 1 && i > 1) row++;
+    seats.push({ seatId: `${tripId}_A${num}`, seatNumber: `A${num}`, floor: 1, type: 'SEAT', row, col });
   }
+
+  // Tầng 2: B01-B17
+  let row2 = 0;
+  for (let i = 1; i <= 17; i++) {
+    const num = String(i).padStart(2, '0');
+    const col = (i % 3 === 1) ? 0 : (i % 3 === 2) ? 2 : 4;
+    if (i % 3 === 1 && i > 1) row2++;
+    seats.push({ seatId: `${tripId}_B${num}`, seatNumber: `B${num}`, floor: 2, type: 'SEAT', row: row2, col });
+  }
+
+  // Thêm tài xế
+  seats.push({ seatId: `${tripId}_DRIVER`, seatNumber: `Tài xế`, floor: 1, type: 'DRIVER', row: -1, col: 0 });
 
   return seats;
 }

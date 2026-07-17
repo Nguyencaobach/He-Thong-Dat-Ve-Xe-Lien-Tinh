@@ -25,7 +25,17 @@ const routeRepository = {
   },
 
   /**
-   * Tìm tuyến xe theo cặp điểm đi - điểm đến
+   * Tìm nhiều tuyến xe theo mảng điểm đi - điểm đến
+   */
+  async findRoutes(departures, arrivals) {
+    return db('routes')
+      .whereIn('departure_province', departures)
+      .whereIn('arrival_province', arrivals)
+      .where('is_active', true);
+  },
+
+  /**
+   * Tìm tuyến xe theo cặp điểm đi - điểm đến (cũ)
    */
   async findRoute(departureProvince, arrivalProvince) {
     return db('routes')
