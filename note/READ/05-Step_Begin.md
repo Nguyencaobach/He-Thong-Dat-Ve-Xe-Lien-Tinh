@@ -41,11 +41,21 @@ cd frontend
 npm install
 npm install react-hook-form @hookform/resolvers # Các thư viện form cho Giai đoạn 2
 npm install graphql-ws
-
 # 3. Khởi chạy Server Next.js ở chế độ phát triển
 npm run dev
 ```
 > **Trang web sẽ chạy tại:** `http://localhost:3000`
+
+---
+
+## 🛠 Các lệnh tiện ích Frontend (Dành cho Developer)
+
+- **Cài đặt thêm UI Component mới (Shadcn):** 
+  ```bash
+  npx shadcn@latest add <tên-component>
+  # Ví dụ: npx shadcn@latest add dropdown-menu avatar
+  ```
+  *(Lưu ý: Các component sau khi cài sẽ tự sinh ra file code trong `src/components/ui/` và tự động cập nhật `package.json`, nên người clone source sau chỉ cần chạy `npm install` là đủ, không cần chạy lại lệnh npx shadcn này).*
 
 ---
 
