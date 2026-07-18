@@ -9,7 +9,7 @@ const google = createGoogleGenerativeAI({
 });
 
 // Sử dụng model embedding của Google
-const embeddingModel = google.textEmbeddingModel('text-embedding-004');
+const embeddingModel = google.textEmbeddingModel('gemini-embedding-2');
 
 let policyEmbeddings = [];
 let isReady = false;
@@ -63,7 +63,7 @@ async function findRelevantPolicies(question) {
     
     // Sắp xếp giảm dần và lấy top 2 đoạn liên quan nhất
     scoredChunks.sort((a, b) => b.score - a.score);
-    const topChunks = scoredChunks.slice(0, 2).filter(c => c.score > 0.6); // Lọc các kết quả có độ tương đồng > 0.6
+    const topChunks = scoredChunks.slice(0, 2).filter(c => c.score > 0.4); // Lọc các kết quả có độ tương đồng > 0.4
     
     if (topChunks.length === 0) return '';
     return topChunks.map(c => c.content).join('\n\n');

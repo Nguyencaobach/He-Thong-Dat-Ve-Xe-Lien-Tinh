@@ -52,29 +52,46 @@ NGUYÊN TẮC QUAN TRỌNG:
 3. Nếu khách tra cứu vé, hãy gọi tool 'getBookingStatus'. Nhớ yêu cầu khách cung cấp ĐỦ mã vé và email trước khi gọi tool.
 4. Nếu dữ liệu trả về từ tool không có hoặc bị lỗi, hãy lịch sự báo cho khách biết.
 5. Về chính sách, nội quy nhà xe, hãy chỉ dựa vào phần [NGỮ CẢNH CHÍNH SÁCH] bên dưới. Nếu câu hỏi nằm ngoài ngữ cảnh, hãy trả lời "Tôi chưa đủ thông tin để trả lời câu hỏi này".
+6. Khi trả lời các câu hỏi về chính sách nội bộ (hủy vé, hành lý, v.v.), BẮT BUỘC phải trích dẫn nguồn tham chiếu, ví dụ: "Theo chính sách quy định hành lý của nhà xe..." hoặc "Dựa trên chính sách hủy vé nội bộ...".
 
 [NGỮ CẢNH CHÍNH SÁCH BỔ SUNG TỰ ĐỘNG TỪ RAG]:
 ${policyContext || 'Không có dữ liệu chính sách nào liên quan được tìm thấy.'}
 `;
 
+    // Xử lý messages từ client (UIMessage) sang CoreMessage
+    const coreMessages = messages.map(m => {
+      if (m.role === 'assistant' && Array.isArray(m.parts)) {
+        // Gom tất cả text từ parts thành content string
+        const textContent = m.parts
+          .filter(p => p.type === 'text')
+          .map(p => p.text)
+          .join('\n');
+        
+        // Bỏ qua các UI-specific parts như step-start, chỉ giữ lại text
+        return {
+          role: 'assistant',
+          content: textContent
+        };
+      }
+      
+      // Xóa id vì Vercel AI SDK đôi khi reject id property
+      const { id, ...coreMessage } = m;
+      return coreMessage;
+    });
+
     // Gọi AI SDK streamText
     const result = await streamText({
-      model: google('gemini-1.5-pro'),
-      messages,
+      model: google('gemini-3.5-flash'),
+      messages: coreMessages,
       system: systemPrompt,
       tools: {
         searchTrips: searchTripsTool,
         getBookingStatus: getBookingStatusTool,
       },
-      maxSteps: 3, // Cho phép AI gọi tool nhiều lần (multi-step)
     });
-
-    // Pipe luồng (stream) trả về cho client
-    result.pipeDataStreamToResponse(res);
-
+    result.pipeUIMessageStreamToResponse(res);
   } catch (error) {
-    console.error('[chatbot-service] Lỗi xử lý chat:', error.message);
-    res.status(500).json({ error: 'Lỗi hệ thống AI, vui lòng thử lại sau.' });
+    res.status(500).json({ error: 'Lỗi hệ thống AI, vui lòng thử lại sau.', details: error.message, stack: error.stack });
   }
 });
 
